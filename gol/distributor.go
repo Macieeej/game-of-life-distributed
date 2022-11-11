@@ -2,7 +2,6 @@ package gol
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/rpc"
 	"strconv"
@@ -84,7 +83,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	// TODO: Execute all turns of the Game of Life.
 	turn := 0
 	//ticker := time.NewTicker(2 * time.Second)
-	done := make(chan bool)
+	//done := make(chan bool)
 	//pause := false
 	//quit := false
 	//waitToUnpause := make(chan bool)
@@ -108,9 +107,9 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		}
 	}()*/
 
-	server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
+	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
 	flag.Parse()
-	client, err := rpc.Dial("tcp", *server)
+	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
 		log.Fatal("dialing:", err)
 	}
@@ -118,19 +117,18 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	//makeCall(client, t)
 	request := stubs.Request{World: world,
 		PrevWorld:   prevWorld,
-		Turns:       turn,
+		Turns:       p.Turns,
 		ImageWidth:  p.ImageWidth,
 		ImageHeight: p.ImageHeight}
 	response := new(stubs.Response)
 	client.Call(stubs.ProcessTurnsHandler, request, response)
-	fmt.Println(response.TurnsDone)
 	world = response.World
 	turn = response.TurnsDone
 
 	//ticker.Stop()
-	done <- true
+	//done <- true
 
-	handleOutput(p, c, world, p.Turns)
+	//handleOutput(p, c, world, p.Turns)
 
 	// Send the output and invoke writePgmImage() in io.go
 	// Sends the world slice to io.go

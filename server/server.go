@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -81,8 +80,10 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 type GolOperations struct{}
 
 func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err error) {
+	fmt.Println(req.Turns)
 	if req.Turns == 0 {
-		err = errors.New("Number of turns must be bigger than 0")
+		res.World = req.World
+		res.TurnsDone = 0
 		return
 	}
 
