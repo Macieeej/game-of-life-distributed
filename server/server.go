@@ -87,16 +87,43 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 		return
 	}
 
+	threads := 1
+	turn := 0
 	pause := false
 	quit := false
-	turn := 0
-	threads := 1
+	waitToUnpause := make(chan bool)
+	/*go func() {
+		for {
+
+			select {
+			case command := <-action:
+				switch command {
+				case Pause:
+					pause = true
+					turnChan <- turn
+				case unPause:
+					pause = false
+					turnChan <- turn
+					waitToUnpause <- true
+				case Quit:
+					worldChan <- world
+					turnChan <- turn
+					quit = true
+					//return
+				case Save:
+					worldChan <- world
+					turnChan <- turn
+				}
+			}
+			//}
+		}
+	}()*/
 
 	for t := 0; t < req.Turns; t++ {
 		//cellFlip := make([]util.Cell, req.ImageHeight*req.ImageWidth)
-		//if pause {
-		//	<-waitToUnpause
-		//}
+		if pause {
+			<-waitToUnpause
+		}
 		if !pause && !quit {
 			turn = t
 			for j := range req.World {
