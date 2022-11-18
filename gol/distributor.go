@@ -26,6 +26,7 @@ const Save int = 0
 const Quit int = 1
 const Pause int = 2
 const unPause int = 3
+const Kill int = 4
 
 func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, world <-chan [][]uint8, t <-chan int, action chan int) {
 	paused := false
@@ -68,6 +69,14 @@ func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, wor
 			}
 
 		case 'k':
+			action <- Kill
+			w := <-world
+			turn := <-t
+			go handleOutput(p, c, w, turn)
+			newState := StateChange{CompletedTurns: turn, NewState: State(Quitting)}
+			fmt.Println(newState.String())
+			c.events <- newState
+			c.events <- FinalTurnComplete{CompletedTurns: turn}
 		}
 
 	}
@@ -160,13 +169,21 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		}
 	}()
 
+	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
+	flag.Parse()
+	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+	defer client.Close()
+
 	turnChan := make(chan int)
 	worldChan := make(chan [][]uint8)
 	action := make(chan int)
+
 	go handleKeyPress(p, c, keyPresses, worldChan, turnChan, action)
 	go func() {
 		for {
-
 			select {
 			case command := <-action:
 				switch command {
@@ -180,19 +197,15 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 				case Save:
 					worldChan <- world
 					turnChan <- turn
+				case Kill:
+					worldChan <- world
+					turnChan <- turn
+					client.Go(stubs.KillingHandler, stubs.KillRequest{Kill: 0}, new(stubs.Response), nil)
+
 				}
 			}
-
 		}
 	}()
-
-	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
-	flag.Parse()
-	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
-	if err != nil {
-		log.Fatal("dialing:", err)
-	}
-	defer client.Close()
 
 	for t := 0; t < p.Turns; t++ {
 		turn = t

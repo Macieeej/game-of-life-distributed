@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"net/rpc"
+	"os"
 	"time"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
@@ -14,13 +15,12 @@ import (
 // analogue to updateWorld function
 /** Super-Secret `reversing a string' method we can't allow clients to see. **/
 /*func ReverseString(s string, i int) string {
-	time.Sleep(time.Duration(rand.Intn(i)) * time.Second)
-	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-	return string(runes)
+time.Sleep(time.DurationCall runes[j], runes[i]
+}
+return string(runes)
 }*/
+
+var listeners net.Listener
 
 func mod(a, b int) int {
 	return (a%b + b) % b
@@ -79,6 +79,12 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 
 type GolOperations struct{}
 
+func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
+	listeners.Close()
+	os.Exit(0)
+	return
+}
+
 func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err error) {
 
 	if req.Turns == 0 {
@@ -98,13 +104,16 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 	return
 }
 
+// kill := make(chan bool)
+
 func main() {
 	pAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	rpc.Register(&GolOperations{})
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
+	listeners = listener
 	defer listener.Close()
-
 	rpc.Accept(listener)
+
 }
