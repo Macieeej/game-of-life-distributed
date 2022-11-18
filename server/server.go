@@ -89,77 +89,13 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 
 	threads := 1
 	// turn := 0
-	pause := false
-	quit := false
-	waitToUnpause := make(chan bool)
-	/*go func() {
-		for {
+	if threads == 1 {
+		res.World, _ = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
 
-			select {
-			case command := <-action:
-				switch command {
-				case Pause:
-					pause = true
-					turnChan <- turn
-				case unPause:
-					pause = false
-					turnChan <- turn
-					waitToUnpause <- true
-				case Quit:
-					worldChan <- world
-					turnChan <- turn
-					quit = true
-					//return
-				case Save:
-					worldChan <- world
-					turnChan <- turn
-				}
-			}
-			//}
-		}
-	}()*/
-
-	//cellFlip := make([]util.Cell, req.ImageHeight*req.ImageWidth)
-	if pause {
-		<-waitToUnpause
 	}
-	if !pause && !quit {
-		for j := range req.World {
-			copy(req.PrevWorld[j], req.World[j])
-		}
-		if threads == 1 {
-			req.World, _ = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
-			//req.World, cellFlip = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
-		}
 
-		/*for _, cell := range cellFlip {
-			// defer wg.Done()
-			c.events <- CellFlipped{
-				CompletedTurns: turn,
-				Cell:           cell,
-			}
-		}
-
-		c.events <- TurnComplete{
-			CompletedTurns: turn,
-		}*/
-	}
-	// } else {
-	// 	if quit {
-	// 		break
-	// 	} else {
-	// 		continue
-	// 	}
-	// }
-	//fmt.Println(cellFlip)
-
-	res.World = req.World
 	// res.TurnsDone = turn
 	return
-}
-
-func listenKeyPress() {
-
 }
 
 func main() {
@@ -169,6 +105,6 @@ func main() {
 	rpc.Register(&GolOperations{})
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
-	go listenKeyPress()
+
 	rpc.Accept(listener)
 }

@@ -10,7 +10,6 @@ type Response struct {
 
 type Request struct {
 	World       [][]uint8
-	PrevWorld   [][]uint8
 	Turns       int
 	ImageWidth  int
 	ImageHeight int

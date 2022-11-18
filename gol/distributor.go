@@ -111,10 +111,8 @@ func handleOutput(p Params, c distributorChannels, world [][]uint8, t int) {
 func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	// TODO: Create a 2D slice to store the world.
 	world := make([][]uint8, p.ImageHeight)
-	prevWorld := make([][]uint8, p.ImageHeight)
 	for i := range world {
 		world[i] = make([]uint8, p.ImageWidth)
-		prevWorld[i] = make([]uint8, p.ImageWidth)
 	}
 
 	filename := strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth)
@@ -139,7 +137,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	turn := 0
 	ticker := time.NewTicker(2 * time.Second)
 	done := make(chan bool)
-	//pause := false
+	// pause := false
 	quit := false
 	//waitToUnpause := make(chan bool)
 	go func() {
@@ -166,6 +164,27 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	worldChan := make(chan [][]uint8)
 	action := make(chan int)
 	go handleKeyPress(p, c, keyPresses, worldChan, turnChan, action)
+	go func() {
+		for {
+
+			select {
+			case command := <-action:
+				switch command {
+				case Pause:
+					turnChan <- turn
+				case unPause:
+					turnChan <- turn
+				case Quit:
+					worldChan <- world
+					turnChan <- turn
+				case Save:
+					worldChan <- world
+					turnChan <- turn
+				}
+			}
+
+		}
+	}()
 
 	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
 	flag.Parse()
@@ -179,7 +198,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		turn = t
 		//makeCall(client, t)
 		request := stubs.Request{World: world,
-			PrevWorld:   prevWorld,
 			Turns:       p.Turns,
 			ImageWidth:  p.ImageWidth,
 			ImageHeight: p.ImageHeight}
