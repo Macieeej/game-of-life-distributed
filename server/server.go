@@ -158,6 +158,10 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 	return
 }
 
+func listenKeyPress() {
+
+}
+
 func main() {
 	pAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
@@ -165,5 +169,6 @@ func main() {
 	rpc.Register(&GolOperations{})
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
+	go listenKeyPress()
 	rpc.Accept(listener)
 }

@@ -149,7 +149,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 				case <-done:
 					return
 				case <-ticker.C:
-					aliveCount, _ := calculateAliveCells(p, prevWorld)
+					aliveCount, _ := calculateAliveCells(p, world)
 					aliveReport := AliveCellsCount{
 						CompletedTurns: turn,
 						CellsCount:     aliveCount,
