@@ -7,6 +7,7 @@ import (
 	"net/rpc"
 	"strconv"
 	"time"
+
 	"uk.ac.bris.cs/gameoflife/stubs"
 
 	"uk.ac.bris.cs/gameoflife/util"
@@ -174,17 +175,20 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	}
 	defer client.Close()
 
-	//makeCall(client, t)
-	request := stubs.Request{World: world,
-		PrevWorld:   prevWorld,
-		Turns:       p.Turns,
-		ImageWidth:  p.ImageWidth,
-		ImageHeight: p.ImageHeight}
-	response := new(stubs.Response)
-	client.Call(stubs.ProcessTurnsHandler, request, response)
+	for t := 0; t < p.Turns; t++ {
+		turn = t
+		//makeCall(client, t)
+		request := stubs.Request{World: world,
+			PrevWorld:   prevWorld,
+			Turns:       p.Turns,
+			ImageWidth:  p.ImageWidth,
+			ImageHeight: p.ImageHeight}
+		response := new(stubs.Response)
+		client.Call(stubs.ProcessTurnsHandler, request, response)
 
-	world = response.World
-	turn = response.TurnsDone
+		world = response.World
+		// turn = response.TurnsDone
+	}
 
 	ticker.Stop()
 	done <- true

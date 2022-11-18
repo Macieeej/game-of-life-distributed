@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"math/rand"
 	"net"
 	"net/rpc"
 	"time"
+
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
 )
@@ -80,7 +80,7 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 type GolOperations struct{}
 
 func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err error) {
-	fmt.Println(req.Turns)
+
 	if req.Turns == 0 {
 		res.World = req.World
 		res.TurnsDone = 0
@@ -88,7 +88,7 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 	}
 
 	threads := 1
-	turn := 0
+	// turn := 0
 	pause := false
 	quit := false
 	waitToUnpause := make(chan bool)
@@ -119,45 +119,42 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 		}
 	}()*/
 
-	for t := 0; t < req.Turns; t++ {
-		//cellFlip := make([]util.Cell, req.ImageHeight*req.ImageWidth)
-		if pause {
-			<-waitToUnpause
-		}
-		if !pause && !quit {
-			turn = t
-			for j := range req.World {
-				copy(req.PrevWorld[j], req.World[j])
-			}
-			if threads == 1 {
-				req.World, _ = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
-				//req.World, cellFlip = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
-			}
-
-			/*for _, cell := range cellFlip {
-				// defer wg.Done()
-				c.events <- CellFlipped{
-					CompletedTurns: turn,
-					Cell:           cell,
-				}
-			}
-
-			c.events <- TurnComplete{
-				CompletedTurns: turn,
-			}*/
-
-		} else {
-			if quit {
-				break
-			} else {
-				continue
-			}
-		}
-		//fmt.Println(cellFlip)
+	//cellFlip := make([]util.Cell, req.ImageHeight*req.ImageWidth)
+	if pause {
+		<-waitToUnpause
 	}
+	if !pause && !quit {
+		for j := range req.World {
+			copy(req.PrevWorld[j], req.World[j])
+		}
+		if threads == 1 {
+			req.World, _ = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
+			//req.World, cellFlip = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
+		}
+
+		/*for _, cell := range cellFlip {
+			// defer wg.Done()
+			c.events <- CellFlipped{
+				CompletedTurns: turn,
+				Cell:           cell,
+			}
+		}
+
+		c.events <- TurnComplete{
+			CompletedTurns: turn,
+		}*/
+	}
+	// } else {
+	// 	if quit {
+	// 		break
+	// 	} else {
+	// 		continue
+	// 	}
+	// }
+	//fmt.Println(cellFlip)
 
 	res.World = req.World
-	res.TurnsDone = turn
+	// res.TurnsDone = turn
 	return
 }
 
