@@ -22,12 +22,6 @@ type distributorChannels struct {
 	ioInput    <-chan uint8
 }
 
-const Save int = 0
-const Quit int = 1
-const Pause int = 2
-const unPause int = 3
-const Kill int = 4
-
 func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, world <-chan [][]uint8, t <-chan int, action chan int) {
 	paused := false
 	for {
@@ -35,13 +29,13 @@ func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, wor
 
 		switch input {
 		case 's':
-			action <- Save
+			action <- stubs.Save
 			w := <-world
 			turn := <-t
 			go handleOutput(p, c, w, turn)
 
 		case 'q':
-			action <- Quit
+			action <- stubs.Quit
 			w := <-world
 			turn := <-t
 			go handleOutput(p, c, w, turn)
@@ -53,14 +47,14 @@ func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, wor
 			c.events <- FinalTurnComplete{CompletedTurns: turn}
 		case 'p':
 			if paused {
-				action <- unPause
+				action <- stubs.UnPause
 				turn := <-t
 				paused = false
 				newState := StateChange{CompletedTurns: turn, NewState: State(Executing)}
 				fmt.Println(newState.String())
 				c.events <- newState
 			} else {
-				action <- Pause
+				action <- stubs.UnPause
 				turn := <-t
 				paused = true
 				newState := StateChange{CompletedTurns: turn, NewState: State(Paused)}
@@ -69,7 +63,7 @@ func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, wor
 			}
 
 		case 'k':
-			action <- Kill
+			action <- stubs.Kill
 			w := <-world
 			turn := <-t
 			go handleOutput(p, c, w, turn)
@@ -129,13 +123,6 @@ func handleOutput(p Params, c distributorChannels, world [][]uint8, t int) {
 	}
 }
 
-/*func makeCall(client *rpc.Client, message string) {
-	request := stubs.Request{Message: message}
-	response := new(stubs.Response)
-	client.Call(stubs.ReverseHandler, request, response)
-	fmt.Println("Responded: " + response.Message)
-}*/
-
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 
@@ -166,6 +153,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 				case <-done:
 					return
 				case <-ticker.C:
+
 					aliveCount, _ := calculateAliveCells(p, world)
 					aliveReport := AliveCellsCount{
 						CompletedTurns: turn,
@@ -197,28 +185,29 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 			select {
 			case command := <-action:
 				switch command {
-				case Pause:
+				case stubs.Pause:
 					turnChan <- turn
-					client.Go(stubs.PauseHandler, stubs.PauseRequest{Pause: true}, new(stubs.Response), nil)
-				case unPause:
+					client.Call(stubs.PauseHandler, stubs.StateRequest{State: stubs.Pause}, new(stubs.StatusReport))
+				case stubs.UnPause:
 					turnChan <- turn
-					client.Go(stubs.PauseHandler, stubs.PauseRequest{Pause: false}, new(stubs.Response), nil)
-				case Quit:
+					client.Call(stubs.PauseHandler, stubs.StateRequest{State: stubs.UnPause}, new(stubs.StatusReport))
+				case stubs.Quit:
 					worldChan <- world
 					turnChan <- turn
-				case Save:
+					client.Call(stubs.PauseHandler, stubs.StateRequest{State: stubs.Quit}, new(stubs.Response))
+				case stubs.Save:
 					worldChan <- world
 					turnChan <- turn
-				case Kill:
+					client.Call(stubs.PauseHandler, stubs.StateRequest{State: stubs.Save}, new(stubs.Response))
+				case stubs.Kill:
 					worldChan <- world
 					turnChan <- turn
-					client.Go(stubs.KillingHandler, stubs.KillRequest{Kill: 0}, new(stubs.Response), nil)
+					client.Call(stubs.JobHandler, stubs.StateRequest{State: stubs.Kill}, new(stubs.Response))
 				}
 			}
 		}
 	}()
 
-	//makeCall(client, t)
 	request := stubs.Request{World: world,
 		Turns:       p.Turns,
 		ImageWidth:  p.ImageWidth,
@@ -227,7 +216,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	client.Call(stubs.ProcessTurnsHandler, request, response)
 
 	world = response.World
-	// turn = response.TurnsDone
+	turn = response.TurnsDone
 
 	ticker.Stop()
 	done <- true
@@ -241,7 +230,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	aliveCells := make([]util.Cell, p.ImageHeight*p.ImageWidth)
 	_, aliveCells = calculateAliveCells(p, world)
 	report := FinalTurnComplete{
-		CompletedTurns: p.Turns,
+		CompletedTurns: turn,
 		Alive:          aliveCells,
 	}
 	c.events <- report

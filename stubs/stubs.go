@@ -2,12 +2,20 @@ package stubs
 
 var ProcessTurnsHandler = "GolOperations.Process"
 var OperationsHandler = "GolOperations.Operations"
-var KillingHandler = "GolOperations.ListenToQuit"
+var JobHandler = "GolOperations.ListenToWork"
 var PauseHandler = "GolOperations.ListenToPause"
 var BrokerAndWorker = "Broker.ConnectWorker"
-var BrokerAndDistributor = "Broker.ConnectDistributor"
 var BrokerChannel = "Broker.MakeChannel"
 
+const Save int = 0
+const Quit int = 1
+const Pause int = 2
+const UnPause int = 3
+const Kill int = 4
+const Ticker int = 5
+
+// (Broker -> Distributor)
+// Applies for Save, Kill, Ticker
 type Response struct {
 	World     [][]uint8
 	TurnsDone int
@@ -20,28 +28,24 @@ type Request struct {
 	ImageHeight int
 }
 
-type KillRequest struct {
-	Kill int
-}
-
 type PauseRequest struct {
 	Pause bool
 }
 
+// (Distributor -> Broker)
+// (Worker -> Broker)
 type ChannelRequest struct {
 	Threads int
 }
 
-// Work requested from the distributor to the broker
-// The Work Type is either:
-// - Ticker
-// - Pause
-// - UnPause
-// - Save
-// - Quit
-// - Kill
-type RequestWork struct {
-	Work string
+// ----------------- Keypresses --------------------
+
+// (Broker -> Distributor)
+// Applies for Save, Kill, Ticker
+
+// (Worker -> Broker)
+type RegisterRequest struct {
+	WorkerAddress string
 }
 
 // (Broker -> Worker)
@@ -49,17 +53,8 @@ type StateRequest struct {
 	State int
 }
 
-// (Broker -> Distributor)
-// Applies for Save, Quit, Kill, Ticker
-type ScreenShotResponse struct {
-	World          [][]uint8
-	CompletedTurns int
-}
-
-type StatusReport struct {
-	Status int
-}
-
+// ----------------- Ticker -----------------------
+// (Distributor -> Broker)
 type TickerRequest struct {
 }
 
@@ -67,6 +62,11 @@ type TickerRequest struct {
 type TickerResponse struct {
 	CompletedTurns  int
 	AliveCellsCount int
+}
+
+// Response that doesn't require any additional data
+type StatusReport struct {
+	Status int
 }
 
 // 1. The distributor initialises the board, gets the input from the IO.

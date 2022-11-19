@@ -1,6 +1,5 @@
 package gol
 
-/*
 import (
 	"flag"
 	"fmt"
@@ -13,40 +12,41 @@ import (
 // Channels that are used to communicate with broker and worker
 var channels []chan [][]uint8
 var workers []Worker
+var nextId = 0
 
 type Worker struct {
-	worker        *rpc.Client
-	workerAddress *string
-	worldChannel  chan [][]uint8
+	id           int
+	stateSwitch  int
+	worker       *rpc.Client
+	address      *string
+	worldChannel chan [][]uint8
 }
 
 type Broker struct{}
 
 // Connect the worker in a loop
-func register_loop(client *rpc.Client) {
+func register_loop(w Worker) {
 	for {
-		// response := new(stubs.JobReport)
-		// err := client.Call(callback, job, response)
-		if err != nil {
-			fmt.Println("Error")
-			fmt.Println(err)
-			fmt.Println("Closing subscriber thread.")
-			//Place the unfulfilled job back on the topic channel.
-			// topic <- job
-			break
-		}
 
 	}
 }
 
 // Initialise connecting worker, and if no error occurs, invoke register_loop.
-func register(workerAddress string, callback string) {
+func register(workerAddress string, callback string) (err error) {
 
 	client, err := rpc.Dial("tcp", workerAddress)
+	worker := Worker{
+		id:           nextId,
+		worker:       client,
+		address:      &workerAddress,
+		worldChannel: channels[nextId],
+	}
+	workers = append(workers, worker)
+	nextId++
+
 	if err == nil {
-		go register_loop(ch, client, callback)
+		go register_loop(worker)
 	} else {
-		fmt.Println("Error subscribing ", factoryAddress)
 		fmt.Println(err)
 		return err
 	}
@@ -54,7 +54,7 @@ func register(workerAddress string, callback string) {
 }
 
 // Send the work via the channel
-func connectDistributor() {
+func connectDistributor(work string, res *stubs.Response) {
 
 }
 
@@ -66,18 +66,22 @@ func makeChannel(threads int) {
 }
 
 // Calls and connects to the worker (Subscribe)
-func (b *Broker) ConnectWorker(req stubs.Request, res *stubs.Response) {
-	register("", "")
+func (b *Broker) ConnectWorker(req stubs.RegisterRequest, res *stubs.StatusReport) (err error) {
+	err = register(req.WorkerAddress, "")
 	return
 }
 
 // (Publish)
-func (b *Broker) ConnectDistributor() {
-	connectDistributor()
+func (b *Broker) ConnectDistributor(req stubs.StateRequest, res *stubs.ScreenShotResponse) (err error) {
+	connectDistributor(req.State, res)
 	return
 }
 
-func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) {
+func (b *Broker) Pause(req stubs.PauseRequest, res *stubs.StatusReport) (err error) {
+	return
+}
+
+func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
 	makeChannel(req.Threads)
 	return
 }
@@ -90,4 +94,4 @@ func main() {
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
-}*/
+}
