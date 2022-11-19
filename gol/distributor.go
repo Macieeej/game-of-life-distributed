@@ -199,8 +199,10 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 				switch command {
 				case Pause:
 					turnChan <- turn
+					client.Go(stubs.PauseHandler, stubs.PauseRequest{Pause: true}, new(stubs.Response), nil)
 				case unPause:
 					turnChan <- turn
+					client.Go(stubs.PauseHandler, stubs.PauseRequest{Pause: false}, new(stubs.Response), nil)
 				case Quit:
 					worldChan <- world
 					turnChan <- turn
@@ -211,25 +213,21 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 					worldChan <- world
 					turnChan <- turn
 					client.Go(stubs.KillingHandler, stubs.KillRequest{Kill: 0}, new(stubs.Response), nil)
-
 				}
 			}
 		}
 	}()
 
-	for t := 0; t < p.Turns; t++ {
-		turn = t
-		//makeCall(client, t)
-		request := stubs.Request{World: world,
-			Turns:       p.Turns,
-			ImageWidth:  p.ImageWidth,
-			ImageHeight: p.ImageHeight}
-		response := new(stubs.Response)
-		client.Call(stubs.ProcessTurnsHandler, request, response)
+	//makeCall(client, t)
+	request := stubs.Request{World: world,
+		Turns:       p.Turns,
+		ImageWidth:  p.ImageWidth,
+		ImageHeight: p.ImageHeight}
+	response := new(stubs.Response)
+	client.Call(stubs.ProcessTurnsHandler, request, response)
 
-		world = response.World
-		// turn = response.TurnsDone
-	}
+	world = response.World
+	// turn = response.TurnsDone
 
 	ticker.Stop()
 	done <- true
