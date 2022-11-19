@@ -118,6 +118,12 @@ func handleOutput(p Params, c distributorChannels, world [][]uint8, t int) {
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
+
+	// brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
+	// flag.Parse()
+	// client, _ := rpc.Dial("tcp", *brokerAddr)
+	// client.Call(stubs.)
+
 	// TODO: Create a 2D slice to store the world.
 	world := make([][]uint8, p.ImageHeight)
 	for i := range world {
