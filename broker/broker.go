@@ -11,6 +11,13 @@ import (
 
 // Channels that are used to communicate with broker and worker
 var channels []chan [][]uint8
+var workers []Worker
+
+type Worker struct {
+	worker        *rpc.Client
+	workerAddress *string
+	worldChannel  chan [][]uint8
+}
 
 type Broker struct{}
 

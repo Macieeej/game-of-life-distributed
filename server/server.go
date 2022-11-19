@@ -20,7 +20,7 @@ time.Sleep(time.DurationCall runes[j], runes[i]
 return string(runes)
 }*/
 
-var listeners net.Listener
+var listener net.Listener
 
 func mod(a, b int) int {
 	return (a%b + b) % b
@@ -80,7 +80,7 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 type GolOperations struct{}
 
 func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
-	listeners.Close()
+	listener.Close()
 	os.Exit(0)
 	return
 }
@@ -111,8 +111,7 @@ func main() {
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	rpc.Register(&GolOperations{})
-	listener, _ := net.Listen("tcp", ":"+*pAddr)
-	listeners = listener
+	listener, _ = net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
 

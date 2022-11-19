@@ -98,6 +98,26 @@ func calculateAliveCells(p Params, world [][]byte) (int, []util.Cell) {
 	return count, aliveCells
 }
 
+// Commands IO to read the initial file, giving the filename via the channel.
+func handleInput(p Params, c distributorChannels, world [][]uint8) [][]uint8 {
+	filename := strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth)
+	c.ioCommand <- 1
+	c.ioFilename <- filename
+	for y := 0; y < p.ImageHeight; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			num := <-c.ioInput
+			world[y][x] = num
+			if num == 255 {
+				c.events <- CellFlipped{
+					CompletedTurns: 0,
+					Cell:           util.Cell{X: x, Y: y},
+				}
+			}
+		}
+	}
+	return world
+}
+
 func handleOutput(p Params, c distributorChannels, world [][]uint8, t int) {
 	c.ioCommand <- 0
 	outFilename := strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(t)
@@ -130,23 +150,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		world[i] = make([]uint8, p.ImageWidth)
 	}
 
-	filename := strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth)
-
-	// Commands IO to read the initial file, giving the filename via the channel.
-	c.ioCommand <- 1
-	c.ioFilename <- filename
-	for y := 0; y < p.ImageHeight; y++ {
-		for x := 0; x < p.ImageWidth; x++ {
-			num := <-c.ioInput
-			world[y][x] = num
-			if num == 255 {
-				c.events <- CellFlipped{
-					CompletedTurns: 0,
-					Cell:           util.Cell{X: x, Y: y},
-				}
-			}
-		}
-	}
+	world = handleInput(p, c, world)
 
 	// TODO: Execute all turns of the Game of Life.
 	turn := 0
