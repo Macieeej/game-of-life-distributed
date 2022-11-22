@@ -2,22 +2,35 @@ package main
 
 import (
 	"flag"
-	"math/rand"
+	"fmt"
 	"net"
 	"net/rpc"
-	"os"
-	"time"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
+// analogue to updateWorld function
+/** Super-Secret `reversing a string' method we can't allow clients to see. **/
+/*func ReverseString(s string, i int) string {
+time.Sleep(time.DurationCall runes[j], runes[i]
+}
+return string(runes)
+}*/
+
 var listener net.Listener
-var job chan int
 var pause bool
 var waitToUnpause chan bool
-var savedWorld [][]uint8
-var completedTurns int
+
+var turnChan chan int
+var worldChan chan [][]uint8
+
+func getOutboundIP() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
+	return localAddr
+}
 
 func mod(a, b int) int {
 	return (a%b + b) % b
@@ -74,67 +87,43 @@ func calculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	return newWorld, flipCell
 }
 
-// Invokes function that are required more than just sending data back
-func job_loop(job chan int) {
-	for {
-		action := <-job
-		switch action {
-		case stubs.Save:
-		case stubs.UnPause:
-		case stubs.Ticker:
-		case stubs.Quit:
-			pauseServer()
-		case stubs.Pause:
-			pauseServer()
-		case stubs.Kill:
-			killServer()
-		}
-	}
-}
-
-func pauseServer() {
-	// pause = req.Pause
-	if !pause {
-		waitToUnpause <- true
-	}
-}
-
-func killServer() {
-	listener.Close()
-	os.Exit(0)
-}
-
 type GolOperations struct{}
 
-// Actions that doesn't require any response
-func (s *GolOperations) ListenToPause(req stubs.StateRequest, res *stubs.StatusReport) (err error) {
-	job <- req.State
-	return
-}
+// func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
+// 	listener.Close()
+// 	os.Exit(0)
+// 	return
+// }
 
-// Actions that does require response (ScreenShotResponse)
-func (s *GolOperations) ListenForWork(req stubs.StateRequest, res *stubs.Response) (err error) {
-	job <- req.State
-	res.World = savedWorld
-	res.TurnsDone = completedTurns
-	return
-}
+// func (s *GolOperations) ListenToPause(req stubs.PauseRequest, res *stubs.Response) (err error) {
+// 	pause = req.Pause
+// 	if !pause {
+// 		waitToUnpause <- true
+// 	}
+// 	return
+// }
 
-func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err error) {
+// func communicateBroker(t chan int) {
+// 	turn := <-t
+// 	Broker <- turn
+// }
 
-	if req.Turns == 0 {
-		res.World = req.World
-		res.TurnsDone = 0
-		return
-	}
+func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
+
+	worldChan = req.WorldChan
+	var newWorld [][]uint8
 	pause = false
 	for t := 0; t < req.Turns; t++ {
+
 		if pause {
 			<-waitToUnpause
 		}
-		if !pause {
-			completedTurns = t
-			savedWorld, _ = calculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
+		if !pause /*&& !quit*/ {
+			turn = <-turnChan
+			if threads == 1 {
+				newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
+				worldChan <- newWorld
+			}
 		} /*else {
 			if quit {
 				break
@@ -152,13 +141,23 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 // kill := make(chan bool)
 
 func main() {
-	pAddr := flag.String("port", "8030", "Port to listen on")
+	pAddr := flag.String("port", "8050", "Port to listen on")
+	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
-	rand.Seed(time.Now().UnixNano())
+	client, _ := rpc.Dial("tcp", *brokerAddr)
+	subscribe := stubs.SubscribeRequest{
+		WorkerAddress: getOutboundIP() + ":" + *pAddr,
+	}
+	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	rpc.Register(&GolOperations{})
-	listener, _ = net.Listen("tcp", ":"+*pAddr)
-	job = make(chan int)
-	go job_loop(job)
+	fmt.Println(*pAddr)
+	listener, err := net.Listen("tcp", ":"+*pAddr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	client.Call()
+	turnChan = make(chan int)
+	go communicateBroker(turnChan)
 	defer listener.Close()
 	rpc.Accept(listener)
 
