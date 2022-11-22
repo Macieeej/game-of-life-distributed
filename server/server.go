@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
-	"os"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
@@ -24,6 +23,7 @@ var pause bool
 var waitToUnpause chan bool
 
 var turnChan chan int
+var worldChan chan [][]uint8
 
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
@@ -89,32 +89,29 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 
 type GolOperations struct{}
 
-func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
-	listener.Close()
-	os.Exit(0)
-	return
-}
+// func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
+// 	listener.Close()
+// 	os.Exit(0)
+// 	return
+// }
 
-func (s *GolOperations) ListenToPause(req stubs.PauseRequest, res *stubs.Response) (err error) {
-	pause = req.Pause
-	if !pause {
-		waitToUnpause <- true
-	}
-	return
-}
+// func (s *GolOperations) ListenToPause(req stubs.PauseRequest, res *stubs.Response) (err error) {
+// 	pause = req.Pause
+// 	if !pause {
+// 		waitToUnpause <- true
+// 	}
+// 	return
+// }
 
-func communicateBroker(t chan int) {
-	turn := <-t
-	Broker <- turn
-}
+// func communicateBroker(t chan int) {
+// 	turn := <-t
+// 	Broker <- turn
+// }
 
-func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err error) {
+func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
 
-	if req.Turns == 0 {
-		res.World = req.World
-		res.TurnsDone = 0
-		return
-	}
+	worldChan = req.WorldChan
+	var newWorld [][]uint8
 	pause = false
 	threads := 1
 	turn := 0
@@ -126,7 +123,8 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 		if !pause /*&& !quit*/ {
 			turn = <-turnChan
 			if threads == 1 {
-				res.World, _ = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
+				newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
+				worldChan <- newWorld
 			}
 		} /*else {
 			if quit {
@@ -151,7 +149,7 @@ func main() {
 	subscribe := stubs.SubscribeRequest{
 		WorkerAddress: getOutboundIP() + ":" + *pAddr,
 	}
-	client.Call("stubs.ConnectWorker", subscribe, new(stubs.StatusReport))
+	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	rpc.Register(&GolOperations{})
 	fmt.Println(*pAddr)
 	listener, err := net.Listen("tcp", ":"+*pAddr)

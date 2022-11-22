@@ -89,7 +89,7 @@ func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, wor
 
 }
 
-func calculateAliveCells(p Params, world [][]bytPass the keypress arguments to the broker.e) (int, []util.Cell) {
+func calculateAliveCells(p Params, world [][]byte) (int, []util.Cell) {
 
 	var aliveCells []util.Cell
 	count := 0

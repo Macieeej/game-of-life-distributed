@@ -23,6 +23,13 @@ const Ticker int = 5
 
 // (Broker -> Distributor)
 // Applies for Save, Kill, Ticker
+
+type Params struct {
+	Threads     int
+	ImageHeight int
+	ImageWidth  int
+}
+
 type Response struct {
 	World     [][]uint8
 	TurnsDone int
@@ -37,13 +44,13 @@ type Request struct {
 }
 
 type WorkerRequest struct {
-	StartY int
-	EndY   int
-	StartX int
-	EndX   int
-	out    chan<- [][]uint8
-	World  [][]uint8
-	Turns  int
+	StartY    int
+	EndY      int
+	StartX    int
+	EndX      int
+	WorldChan chan [][]uint8
+	Turns     int
+	Params    Params
 }
 
 type PauseRequest struct {
