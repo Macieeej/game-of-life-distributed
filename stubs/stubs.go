@@ -7,6 +7,8 @@ var JobHandler = "GolOperations.ListenToWork"
 var PauseHandler = "GolOperations.ListenToPause"
 var BrokerAndWorker = "Broker.ConnectWorker"
 var BrokerChannel = "Broker.MakeChannel"
+var MakeWorld = "Broker.MakeWorld"
+var ConnectDistributor = "Broker.ConnectDistributor"
 
 const Save int = 0
 const Quit int = 1
