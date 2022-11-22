@@ -9,6 +9,7 @@ var BrokerAndWorker = "Broker.ConnectWorker"
 var BrokerChannel = "Broker.MakeChannel"
 var MakeWorld = "Broker.MakeWorld"
 var ConnectDistributor = "Broker.ConnectDistributor"
+var ConnectWorker = "Broker.ConnectWorker"
 
 const Save int = 0
 const Quit int = 1
@@ -70,13 +71,7 @@ type RegisterRequest struct {
 
 // (Worker -> Broker)
 type SubscribeRequest struct {
-	World         [][]uint8
-	Threads       int
-	Turns         int
-	ImageWidth    int
-	ImageHeight   int
 	WorkerAddress string
-	Callback      string
 }
 
 // (Broker -> Worker)

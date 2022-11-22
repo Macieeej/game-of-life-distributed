@@ -23,6 +23,15 @@ var listener net.Listener
 var pause bool
 var waitToUnpause chan bool
 
+var turnChan chan int
+
+func getOutboundIP() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
+	return localAddr
+}
+
 func mod(a, b int) int {
 	return (a%b + b) % b
 }
@@ -94,6 +103,11 @@ func (s *GolOperations) ListenToPause(req stubs.PauseRequest, res *stubs.Respons
 	return
 }
 
+func communicateBroker(t chan int) {
+	turn := <-t
+	Broker <- turn
+}
+
 func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err error) {
 
 	if req.Turns == 0 {
@@ -105,11 +119,12 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 	threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
+
 		if pause {
 			<-waitToUnpause
 		}
 		if !pause /*&& !quit*/ {
-			turn = t
+			turn = <-turnChan
 			if threads == 1 {
 				res.World, _ = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
 			}
@@ -133,7 +148,10 @@ func main() {
 	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
 	client, _ := rpc.Dial("tcp", *brokerAddr)
-	// client.Call(stubs.ChannelRequest, stubs.ChannelRequest{Topic: "multiply", Buffer: 10}, status)
+	subscribe := stubs.SubscribeRequest{
+		WorkerAddress: getOutboundIP() + ":" + *pAddr,
+	}
+	client.Call("stubs.ConnectWorker", subscribe, new(stubs.StatusReport))
 	rpc.Register(&GolOperations{})
 	fmt.Println(*pAddr)
 	listener, err := net.Listen("tcp", ":"+*pAddr)
@@ -141,7 +159,8 @@ func main() {
 		fmt.Println(err)
 	}
 	client.Call()
-
+	turnChan = make(chan int)
+	go communicateBroker(turnChan)
 	defer listener.Close()
 	rpc.Accept(listener)
 

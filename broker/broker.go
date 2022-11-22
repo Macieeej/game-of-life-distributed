@@ -126,7 +126,7 @@ func registerDistributor(req stubs.Request, res *stubs.Response) (err error) {
 	p.threads = req.Threads
 	p.imageHeight = req.ImageHeight
 	p.imageWidth = req.ImageWidth
-	channels := make([]chan [][]uint8, p.threads)
+	channels = make([]chan [][]uint8, p.threads)
 	go register_loop()
 	return err
 }
@@ -164,7 +164,7 @@ func (b *Broker) MakeWorld(req stubs.Request, res *stubs.StatusReport) (err erro
 }
 
 // Calls and connects to the worker (Subscribe)
-func (b *Broker) ConnectWorker(req stubs.RegisterRequest, res *stubs.StatusReport) (err error) {
+func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusReport) (err error) {
 	world := stubs.Request{World: req.World, ImageHeight: req.ImageHeight, ImageWidth: req.ImageWidth, Turns: req.Turns, Threads: req.Threads}
 	err = subscribe(world, req.WorkerAddress, req.Callback)
 	return
