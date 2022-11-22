@@ -149,6 +149,7 @@ func main() {
 	subscribe := stubs.SubscribeRequest{
 		WorkerAddress: getOutboundIP() + ":" + *pAddr,
 	}
+
 	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	rpc.Register(&GolOperations{})
 	fmt.Println(*pAddr)
@@ -156,9 +157,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	client.Call()
 	turnChan = make(chan int)
-	go communicateBroker(turnChan)
 	defer listener.Close()
 	rpc.Accept(listener)
 

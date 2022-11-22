@@ -224,16 +224,19 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		}
 	}()
 
+	chanreq := stubs.ChannelRequest{Threads: p.Threads}
+	chanres := new(stubs.StatusReport)
+	client.Call(stubs.MakeChannel, chanreq, chanres)
+
 	request := stubs.Request{World: world,
 		Turns:       p.Turns,
 		ImageWidth:  p.ImageWidth,
 		ImageHeight: p.ImageHeight}
-	response := new(stubs.Response)
-	client.Call(stubs.MakeWorld, request, response)
-	//client.Call(stubs.ConnectDistributor, request, response)
-
-	world = response.World
-	turn = response.TurnsDone
+	response := new(stubs.StatusReport)
+	client.Call(stubs.ConnectDistributor, request, response)
+	time.Sleep(5 * time.Second)
+	// world = response.World
+	// turn = response.TurnsDone
 
 	ticker.Stop()
 	done <- true
