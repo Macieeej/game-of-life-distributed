@@ -1,4 +1,4 @@
-package gol
+package main
 
 import (
 	"flag"
@@ -22,17 +22,30 @@ type Worker struct {
 	worldChannel chan [][]uint8
 }
 
-type Broker struct{}
+type Worker struct {
+	id           int
+	stateSwitch  int
+	worker       *rpc.Client
+	address      *string
+	worldChannel chan [][]uint8
+}
 
 // Connect the worker in a loop
-func register_loop(w Worker) {
+func register_loop(startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, turns int, w Worker) {
 	for {
-
+		response := new(stubs.Response)
+		//registerReq := stubs.RegisterRequest{WorkerAddress: *w.address}
+		workerReq := stubs.WorkerRequest{StartY: startY, EndY: endY, StartX: startX, EndX: endX, World: world, Turns: turns}
+		err := w.worker.Call(stubs.PauseHandler, workerReq, &response)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			break
+		}
 	}
 }
 
 // Initialise connecting worker, and if no error occurs, invoke register_loop.
-func register(workerAddress string, callback string) (err error) {
+func register(world stubs.Request, workerAddress string, callback string) (err error) {
 
 	client, err := rpc.Dial("tcp", workerAddress)
 	worker := Worker{
@@ -41,48 +54,86 @@ func register(workerAddress string, callback string) (err error) {
 		address:      &workerAddress,
 		worldChannel: channels[nextId],
 	}
-	workers = append(workers, worker)
-	nextId++
 
-	if err == nil {
-		go register_loop(worker)
+	//var worldFragment [][]uint8
+
+	if world.Threads == 1 && err == nil {
+		channels := make([]chan [][]uint8, world.Threads)
+		go register_loop(0, world.ImageHeight, 0, world.ImageWidth, world.World, channels[0], world.Turns, worker)
+		/*worldPart := <-channels[0]
+		    worldFragment = append(worldFragment, worldPart...)
+			for j := range worldFragment {
+				copy(world.World[j], worldFragment[j])
+			}*/
+
+	} else if err == nil {
+		channels := make([]chan [][]uint8, world.Threads)
+		unit := int(world.ImageHeight / world.Threads)
+		for i := 0; i < world.Threads; i++ {
+			channels[i] = make(chan [][]uint8)
+			if i == world.Threads-1 {
+				// Handling with problems if threads division goes with remainders
+				//go worker(p, i*unit, p.ImageHeight, 0, p.ImageWidth, world, channels[i], c, turn)
+				go register_loop(i*unit, world.ImageHeight, 0, world.ImageWidth, world.World, channels[i], world.Turns, worker)
+			} else {
+				//go worker(p, i*unit, (i+1)*unit, 0, p.ImageWidth, world, channels[i], c, turn)
+				go register_loop(i*unit, (i+1)*unit, 0, world.ImageWidth, world.World, channels[i], world.Turns, worker)
+			}
+		}
+		/*for i := 0; i < world.Threads; i++ {
+			worldPart := <-channels[i]
+			worldFragment = append(worldFragment, worldPart...)
+		}
+		for j := range worldFragment {
+			copy(world.World[j], worldFragment[j])
+		}*/
 	} else {
 		fmt.Println(err)
 		return err
 	}
+
+	workers = append(workers, worker)
+	nextId++
+
 	return
 }
 
 // Send the work via the channel
-func connectDistributor(work string, res *stubs.Response) {
+func connectDistributor(work string, res *stubs.Response) error {
 
+	return nil
 }
 
 func makeChannel(threads int) {
 	channels = make([]chan [][]uint8, threads)
 	for i := range channels {
 		channels[i] = make(chan [][]uint8)
+		fmt.Println("Created channel #", i)
 	}
+}
+
+type Broker struct{}
+
+// (CreateChannel)
+func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
+	makeChannel(req.Threads)
+	return
 }
 
 // Calls and connects to the worker (Subscribe)
 func (b *Broker) ConnectWorker(req stubs.RegisterRequest, res *stubs.StatusReport) (err error) {
-	err = register(req.WorkerAddress, "")
+	world := stubs.Request{World: req.World, ImageHeight: req.ImageHeight, ImageWidth: req.ImageWidth, Turns: req.Turns, Threads: req.Threads}
+	err = register(world, req.WorkerAddress, req.Callback)
 	return
 }
 
 // (Publish)
 func (b *Broker) ConnectDistributor(req stubs.StateRequest, res *stubs.ScreenShotResponse) (err error) {
-	connectDistributor(req.State, res)
+	err = connectDistributor(req.State, res)
 	return
 }
 
 func (b *Broker) Pause(req stubs.PauseRequest, res *stubs.StatusReport) (err error) {
-	return
-}
-
-func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
-	makeChannel(req.Threads)
 	return
 }
 

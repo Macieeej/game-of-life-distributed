@@ -1,7 +1,8 @@
 package stubs
 
 var ProcessTurnsHandler = "GolOperations.Process"
-var OperationsHandler = "GolOperations.Operations"
+
+//var OperationsHandler = "GolOperations.Operations"
 var JobHandler = "GolOperations.ListenToWork"
 var PauseHandler = "GolOperations.ListenToPause"
 var BrokerAndWorker = "Broker.ConnectWorker"
@@ -23,9 +24,20 @@ type Response struct {
 
 type Request struct {
 	World       [][]uint8
+	Threads     int
 	Turns       int
 	ImageWidth  int
 	ImageHeight int
+}
+
+type WorkerRequest struct {
+	StartY int
+	EndY   int
+	StartX int
+	EndX   int
+	out    chan<- [][]uint8
+	World  [][]uint8
+	Turns  int
 }
 
 type PauseRequest struct {
@@ -45,7 +57,13 @@ type ChannelRequest struct {
 
 // (Worker -> Broker)
 type RegisterRequest struct {
+	World         [][]uint8
+	Threads       int
+	Turns         int
+	ImageWidth    int
+	ImageHeight   int
 	WorkerAddress string
+	Callback      string
 }
 
 // (Broker -> Worker)
