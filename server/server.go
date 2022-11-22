@@ -140,6 +140,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+	client.Call()
 
 	defer listener.Close()
 	rpc.Accept(listener)
