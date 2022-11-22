@@ -137,6 +137,10 @@ func main() {
 	rpc.Register(&GolOperations{})
 	fmt.Println(*pAddr)
 	listener, err := net.Listen("tcp", ":"+*pAddr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	defer listener.Close()
 	rpc.Accept(listener)
 

@@ -117,7 +117,7 @@ func registerDistributor(req stubs.Request, res *stubs.Response) (err error) {
 	p.threads = req.Threads
 	p.imageHeight = req.ImageHeight
 	p.imageWidth = req.ImageWidth
-	channels := make([]chan [][]uint8, world.Threads)
+	channels := make([]chan [][]uint8, p.threads)
 	go register_loop()
 	return err
 }
