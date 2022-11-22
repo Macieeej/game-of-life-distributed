@@ -28,6 +28,12 @@ const Pause int = 2
 const unPause int = 3
 const Kill int = 4
 
+// 1 : Pass the keypress to the annonymous goroutine function below in the distributor (dis -> dis)
+// 2 : Get the report from the broker. (Ticker request (dis -> broker))
+// 3 : Connect with the broker, not the worker (Register (dis -> broker))
+// 4 : Pass the keypress arguments to the broker. (Keypress (dis -> broker))
+
+// TODO : Pass the keypress to the annonymous goroutine function below in the distributor
 func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, world <-chan [][]uint8, t <-chan int, action chan int) {
 	paused := false
 	for {
@@ -83,7 +89,7 @@ func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, wor
 
 }
 
-func calculateAliveCells(p Params, world [][]byte) (int, []util.Cell) {
+func calculateAliveCells(p Params, world [][]bytPass the keypress arguments to the broker.e) (int, []util.Cell) {
 
 	var aliveCells []util.Cell
 	count := 0
@@ -124,7 +130,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	// client, _ := rpc.Dial("tcp", *brokerAddr)
 	// client.Call(stubs.)
 
-	// TODO: Create a 2D slice to store the world.
 	world := make([][]uint8, p.ImageHeight)
 	for i := range world {
 		world[i] = make([]uint8, p.ImageWidth)
@@ -148,7 +153,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		}
 	}
 
-	// TODO: Execute all turns of the Game of Life.
 	turn := 0
 	ticker := time.NewTicker(2 * time.Second)
 	done := make(chan bool)
@@ -161,6 +165,9 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 				select {
 				case <-done:
 					return
+					// TODO : Get the report from the broker.
+					// The distributor doesn't know the exact turn every time,
+					// But only knows when some events happen (Ticker, save, ..)
 				case <-ticker.C:
 					aliveCount, _ := calculateAliveCells(p, world)
 					aliveReport := AliveCellsCount{
@@ -176,6 +183,8 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	}()
 
 	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
+	// TODO : Connect with the broker, not the worker
+	// Use Register Request (via RPC)
 	flag.Parse()
 	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
@@ -187,6 +196,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	worldChan := make(chan [][]uint8)
 	action := make(chan int)
 
+	// TODO : Pass the keypress arguments to the broker.
 	go handleKeyPress(p, c, keyPresses, worldChan, turnChan, action)
 	go func() {
 		for {

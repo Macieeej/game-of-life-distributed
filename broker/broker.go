@@ -9,6 +9,10 @@ import (
 	"uk.ac.bris.cs/gameoflife/stubs"
 )
 
+// 1 : Pass the report from the distributor. (Ticker request (broker -> dis))
+// 2 : Connect with the distributor (Register (broker -> dis))
+// 3 : Pass the keypress arguments from the distributor to the worker. (Keypress (dis -> broker) (broker -> worker))
+
 // Channels that are used to communicate with broker and worker
 var channels []chan [][]uint8
 var workers []Worker
