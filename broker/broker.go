@@ -17,6 +17,15 @@ import (
 var channels []chan [][]uint8
 var workers []Worker
 var nextId = 0
+var theWorld World
+
+type World struct {
+	world       [][]uint8
+	imageHeight int
+	imageWidth  int
+	turns       int
+	threads     int
+}
 
 type Worker struct {
 	id           int
@@ -130,6 +139,10 @@ func makeChannel(threads int) {
 	}
 }
 
+func makeWorld(world [][]uint8, imageHeight int, imageWidth int, turns int, threads int) {
+	theWorld = World{world: world, imageHeight: imageHeight, imageWidth: imageWidth, turns: turns, threads: threads}
+}
+
 type Broker struct{}
 
 // (CreateChannel)
@@ -142,6 +155,11 @@ func (b *Broker) ReportStatus(req stubs.StateRequest, req *stubs.Response) (err 
 
 func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
 	makeChannel(req.Threads)
+	return
+}
+
+func (b *Broker) MakeWorld(req stubs.Request, res *stubs.StatusReport) (err error) {
+	makeWorld(req.World, req.ImageHeight, req.ImageWidth, req.Turns, req.Threads)
 	return
 }
 

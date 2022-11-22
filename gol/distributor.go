@@ -218,7 +218,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 				case Kill:
 					worldChan <- world
 					turnChan <- turn
-					client.Go(stubs.KillingHandler, stubs.KillRequest{Kill: 0}, new(stubs.Response), nil)
+					//client.Go(stubs.KillingHandler, stubs.KillRequest{Kill: 0}, new(stubs.Response), nil)
 				}
 			}
 		}
@@ -230,10 +230,11 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		ImageWidth:  p.ImageWidth,
 		ImageHeight: p.ImageHeight}
 	response := new(stubs.Response)
-	client.Call(stubs.ProcessTurnsHandler, request, response)
+	client.Call(stubs.MakeWorld, request, response)
+	//client.Call(stubs.ConnectDistributor, request, response)
 
 	world = response.World
-	// turn = response.TurnsDone
+	turn = response.TurnsDone
 
 	ticker.Stop()
 	done <- true
