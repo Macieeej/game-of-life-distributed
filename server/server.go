@@ -55,7 +55,7 @@ func calculateNeighbours(height, width int, world [][]byte, y int, x int) int {
 	return noOfNeighbours
 }
 
-func calculateNextState(height, width, startY, endY int, world [][]byte) ([][]byte, []util.Cell) {
+func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]byte, []util.Cell) {
 
 	newWorld := make([][]byte, endY-startY)
 	flipCell := make([]util.Cell, height, width)
@@ -113,6 +113,8 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	worldChan = req.WorldChan
 	var newWorld [][]uint8
 	pause = false
+	threads := 1
+	turn := 0
 	for t := 0; t < req.Turns; t++ {
 
 		if pause {
@@ -133,8 +135,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 		}*/
 	}
 
-	res.World = savedWorld
-	res.TurnsDone = completedTurns
+	res.TurnsDone = turn
 	return
 }
 
