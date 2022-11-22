@@ -15,6 +15,9 @@ const UnPause int = 3
 const Kill int = 4
 const Ticker int = 5
 
+// REGISTER : DISTRIBUTOR
+// SUBSCRIBE : WORKER
+
 // (Broker -> Distributor)
 // Applies for Save, Kill, Ticker
 type Response struct {
@@ -50,13 +53,21 @@ type ChannelRequest struct {
 	Threads int
 }
 
+// Connect to the broker from the first tiem and initialise world
+type RegisterRequest struct {
+	World       [][]uint8
+	Threads     int
+	ImageWidth  int
+	ImageHeight int
+}
+
 // ----------------- Keypresses --------------------
 
 // (Broker -> Distributor)
 // Applies for Save, Kill, Ticker
 
 // (Worker -> Broker)
-type RegisterRequest struct {
+type SubscribeRequest struct {
 	World         [][]uint8
 	Threads       int
 	Turns         int

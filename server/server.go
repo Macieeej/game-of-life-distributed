@@ -2,11 +2,10 @@ package main
 
 import (
 	"flag"
-	"math/rand"
+	"fmt"
 	"net"
 	"net/rpc"
 	"os"
-	"time"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
@@ -20,7 +19,7 @@ time.Sleep(time.DurationCall runes[j], runes[i]
 return string(runes)
 }*/
 
-var listeners net.Listener
+var listener net.Listener
 var pause bool
 var waitToUnpause chan bool
 
@@ -82,7 +81,7 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 type GolOperations struct{}
 
 func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
-	listeners.Close()
+	listener.Close()
 	os.Exit(0)
 	return
 }
@@ -130,12 +129,14 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 // kill := make(chan bool)
 
 func main() {
-	pAddr := flag.String("port", "8030", "Port to listen on")
+	pAddr := flag.String("port", "8050", "Port to listen on")
+	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
-	rand.Seed(time.Now().UnixNano())
+	client, _ := rpc.Dial("tcp", *brokerAddr)
+	// client.Call(stubs.ChannelRequest, stubs.ChannelRequest{Topic: "multiply", Buffer: 10}, status)
 	rpc.Register(&GolOperations{})
-	listener, _ := net.Listen("tcp", ":"+*pAddr)
-	listeners = listener
+	fmt.Println(*pAddr)
+	listener, err := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
 

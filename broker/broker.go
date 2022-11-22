@@ -26,8 +26,18 @@ type Worker struct {
 	worldChannel chan [][]uint8
 }
 
+type Params struct {
+	threads     int
+	imageHeight int
+	imageWidth  int
+}
+
+var p Params
+var world [][]uint8
+var completedTurns int
+
 // Connect the worker in a loop
-func register_loop(startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, turns int, w Worker) {
+func subscribe_loop(startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, turns int, w Worker) {
 	for {
 		response := new(stubs.Response)
 		//registerReq := stubs.RegisterRequest{WorkerAddress: *w.address}
@@ -41,7 +51,7 @@ func register_loop(startY, endY, startX, endX int, world [][]uint8, out chan<- [
 }
 
 // Initialise connecting worker, and if no error occurs, invoke register_loop.
-func register(world stubs.Request, workerAddress string, callback string) (err error) {
+func subscribe(world stubs.Request, workerAddress string, callback string) (err error) {
 
 	client, err := rpc.Dial("tcp", workerAddress)
 	worker := Worker{
@@ -54,8 +64,8 @@ func register(world stubs.Request, workerAddress string, callback string) (err e
 	//var worldFragment [][]uint8
 
 	if world.Threads == 1 && err == nil {
-		channels := make([]chan [][]uint8, world.Threads)
-		go register_loop(0, world.ImageHeight, 0, world.ImageWidth, world.World, channels[0], world.Turns, worker)
+
+		go subscribe_loop(0, world.ImageHeight, 0, world.ImageWidth, world.World, channels[0], world.Turns, worker)
 		/*worldPart := <-channels[0]
 		    worldFragment = append(worldFragment, worldPart...)
 			for j := range worldFragment {
@@ -63,17 +73,17 @@ func register(world stubs.Request, workerAddress string, callback string) (err e
 			}*/
 
 	} else if err == nil {
-		channels := make([]chan [][]uint8, world.Threads)
+
 		unit := int(world.ImageHeight / world.Threads)
 		for i := 0; i < world.Threads; i++ {
 			channels[i] = make(chan [][]uint8)
 			if i == world.Threads-1 {
 				// Handling with problems if threads division goes with remainders
 				//go worker(p, i*unit, p.ImageHeight, 0, p.ImageWidth, world, channels[i], c, turn)
-				go register_loop(i*unit, world.ImageHeight, 0, world.ImageWidth, world.World, channels[i], world.Turns, worker)
+				go subscribe_loop(i*unit, world.ImageHeight, 0, world.ImageWidth, world.World, channels[i], world.Turns, worker)
 			} else {
 				//go worker(p, i*unit, (i+1)*unit, 0, p.ImageWidth, world, channels[i], c, turn)
-				go register_loop(i*unit, (i+1)*unit, 0, world.ImageWidth, world.World, channels[i], world.Turns, worker)
+				go subscribe_loop(i*unit, (i+1)*unit, 0, world.ImageWidth, world.World, channels[i], world.Turns, worker)
 			}
 		}
 		/*for i := 0; i < world.Threads; i++ {
@@ -83,6 +93,7 @@ func register(world stubs.Request, workerAddress string, callback string) (err e
 		for j := range worldFragment {
 			copy(world.World[j], worldFragment[j])
 		}*/
+
 	} else {
 		fmt.Println(err)
 		return err
@@ -94,10 +105,21 @@ func register(world stubs.Request, workerAddress string, callback string) (err e
 	return
 }
 
-// Send the work via the channel
-func connectDistributor(work string, res *stubs.Response) error {
+func register_loop() {
 
-	return nil
+}
+
+// Make an connection with the Distributor
+// And initialise the params.
+func registerDistributor(req stubs.Request, res *stubs.Response) (err error) {
+	world = req.World
+	completedTurns = req.Turns
+	p.threads = req.Threads
+	p.imageHeight = req.ImageHeight
+	p.imageWidth = req.ImageWidth
+	channels := make([]chan [][]uint8, world.Threads)
+	go register_loop()
+	return err
 }
 
 func makeChannel(threads int) {
@@ -111,6 +133,13 @@ func makeChannel(threads int) {
 type Broker struct{}
 
 // (CreateChannel)
+// Broker & Worker
+// Broker & Distributor
+
+func (b *Broker) ReportStatus(req stubs.StateRequest, req *stubs.Response) (err error) {
+	return err
+}
+
 func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
 	makeChannel(req.Threads)
 	return
@@ -119,13 +148,13 @@ func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) 
 // Calls and connects to the worker (Subscribe)
 func (b *Broker) ConnectWorker(req stubs.RegisterRequest, res *stubs.StatusReport) (err error) {
 	world := stubs.Request{World: req.World, ImageHeight: req.ImageHeight, ImageWidth: req.ImageWidth, Turns: req.Turns, Threads: req.Threads}
-	err = register(world, req.WorkerAddress, req.Callback)
+	err = subscribe(world, req.WorkerAddress, req.Callback)
 	return
 }
 
 // (Publish)
-func (b *Broker) ConnectDistributor(req stubs.StateRequest, res *stubs.ScreenShotResponse) (err error) {
-	err = connectDistributor(req.State, res)
+func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.ScreenShotResponse) (err error) {
+	err = registerDistributor(req, res)
 	return
 }
 
