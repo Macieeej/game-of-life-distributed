@@ -6,8 +6,6 @@ var ProcessTurnsHandler = "GolOperations.Process"
 var JobHandler = "GolOperations.ListenToWork"
 var PauseHandler = "GolOperations.ListenToPause"
 var BrokerAndWorker = "Broker.ConnectWorker"
-var BrokerChannel = "Broker.MakeChannel"
-var MakeWorld = "Broker.MakeWorld"
 var ConnectDistributor = "Broker.ConnectDistributor"
 var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
@@ -25,12 +23,6 @@ const Ticker int = 5
 // (Broker -> Distributor)
 // Applies for Save, Kill, Ticker
 
-type Params struct {
-	Threads     int
-	ImageHeight int
-	ImageWidth  int
-}
-
 type Response struct {
 	World     [][]uint8
 	TurnsDone int
@@ -42,6 +34,13 @@ type Request struct {
 	Turns       int
 	ImageWidth  int
 	ImageHeight int
+}
+
+type Params struct {
+	Threads     int
+	ImageHeight int
+	ImageWidth  int
+	Turns       int
 }
 
 type WorkerRequest struct {
