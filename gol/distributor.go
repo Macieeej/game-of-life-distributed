@@ -234,9 +234,24 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		ImageHeight: p.ImageHeight}
 	response := new(stubs.StatusReport)
 	client.Call(stubs.ConnectDistributor, request, response)
-	time.Sleep(5 * time.Second)
-	// world = response.World
-	// turn = response.TurnsDone
+	//time.Sleep(10 * time.Second)
+	//world = response.World
+	//turn = response.TurnsDone
+
+	for {
+		keypress := stubs.StateRequest{State: 5}
+		status := new(stubs.Response)
+		errr := client.Call(stubs.Publish, keypress, status)
+		if errr != nil {
+			fmt.Println("RPC client returned error:")
+			fmt.Println(errr)
+			fmt.Println("Shutting down miner.")
+			break
+		}
+		world = status.World
+		turn = status.TurnsDone
+		//fmt.Println("Turns done: ", turn)
+	}
 
 	ticker.Stop()
 	done <- true

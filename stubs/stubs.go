@@ -11,6 +11,7 @@ var MakeWorld = "Broker.MakeWorld"
 var ConnectDistributor = "Broker.ConnectDistributor"
 var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
+var Publish = "Broker.Publish"
 
 const Save int = 0
 const Quit int = 1
