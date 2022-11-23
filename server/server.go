@@ -2,11 +2,9 @@ package main
 
 import (
 	"flag"
-	"math/rand"
+	"fmt"
 	"net"
 	"net/rpc"
-	"os"
-	"time"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
@@ -20,9 +18,19 @@ time.Sleep(time.DurationCall runes[j], runes[i]
 return string(runes)
 }*/
 
-var listeners net.Listener
+var listener net.Listener
 var pause bool
 var waitToUnpause chan bool
+
+var turnChan chan int
+var worldChan chan [][]uint8
+
+func getOutboundIP() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
+	return localAddr
+}
 
 func mod(a, b int) int {
 	return (a%b + b) % b
@@ -81,38 +89,42 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 
 type GolOperations struct{}
 
-func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
-	listeners.Close()
-	os.Exit(0)
-	return
-}
+// func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
+// 	listener.Close()
+// 	os.Exit(0)
+// 	return
+// }
 
-func (s *GolOperations) ListenToPause(req stubs.PauseRequest, res *stubs.Response) (err error) {
-	pause = req.Pause
-	if !pause {
-		waitToUnpause <- true
-	}
-	return
-}
+// func (s *GolOperations) ListenToPause(req stubs.PauseRequest, res *stubs.Response) (err error) {
+// 	pause = req.Pause
+// 	if !pause {
+// 		waitToUnpause <- true
+// 	}
+// 	return
+// }
 
-func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err error) {
+// func communicateBroker(t chan int) {
+// 	turn := <-t
+// 	Broker <- turn
+// }
 
-	if req.Turns == 0 {
-		res.World = req.World
-		res.TurnsDone = 0
-		return
-	}
+func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
+
+	worldChan = req.WorldChan
+	var newWorld [][]uint8
 	pause = false
 	threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
+
 		if pause {
 			<-waitToUnpause
 		}
 		if !pause /*&& !quit*/ {
-			turn = t
+			turn = <-turnChan
 			if threads == 1 {
-				res.World, _ = CalculateNextState(req.ImageHeight, req.ImageWidth, 0, req.ImageHeight, req.World)
+				newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
+				worldChan <- newWorld
 			}
 		} /*else {
 			if quit {
@@ -130,12 +142,26 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 // kill := make(chan bool)
 
 func main() {
-	pAddr := flag.String("port", "8030", "Port to listen on")
+	pAddr := flag.String("port", "8050", "Port to listen on")
+	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
-	rand.Seed(time.Now().UnixNano())
+	client, err := rpc.Dial("tcp", *brokerAddr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	subscribe := stubs.SubscribeRequest{
+		WorkerAddress: getOutboundIP() + ":" + *pAddr,
+	}
+
+	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	rpc.Register(&GolOperations{})
-	listener, _ := net.Listen("tcp", ":"+*pAddr)
-	listeners = listener
+	fmt.Println(*pAddr)
+	fmt.Println(getOutboundIP() + ":" + *pAddr)
+	listener, err := net.Listen("tcp", ":"+*pAddr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	turnChan = make(chan int)
 	defer listener.Close()
 	rpc.Accept(listener)
 
