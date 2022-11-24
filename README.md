@@ -68,11 +68,11 @@ In this stage, you are required to write code to evolve Game of Life using multi
 
 Implement the Game of Life logic as it was described in the task introduction. We suggest starting with a single-threaded implementation that will serve as a starting point in subsequent steps. Your Game of Life should evolve for the number of turns specified in `gol.Params.Turns`. Your Game of Life should evolve the correct image specified by  `gol.Params.ImageWidth` and `gol.Params.ImageHeight`.
 
-The skeleton code starts three goroutines. The diagram below shows how they should interact with each other. Note that not all channels linking IO and the Distributor have been initialised for you. You will need to make them and add them to the `distributorChannels` and `ioChannels` structs. These structs are created in `gol/gol.go`.
+The skeleton code starts three goroutines. The diagram below shows how they should interact with each other. Note that not all worldChan linking IO and the Distributor have been initialised for you. You will need to make them and add them to the `distributorChannels` and `ioChannels` structs. These structs are created in `gol/gol.go`.
 
 ![Step 1](content/cw_diagrams-Parallel_1.png)
 
-You are not able to call methods directly on the IO goroutine. To use the IO, you will need to utilise channel communication. For reading in the initial PGM image, you will need the `command`, `filename` and `input` channels. Look at the file `gol/io.go` for details. The functions `io.readPgmImage` and `startIo` are particularly important in this step.
+You are not able to call methods directly on the IO goroutine. To use the IO, you will need to utilise channel communication. For reading in the initial PGM image, you will need the `command`, `filename` and `input` worldChan. Look at the file `gol/io.go` for details. The functions `io.readPgmImage` and `startIo` are particularly important in this step.
 
 Your Game of Life code will interact with the user or the unit tests using the `events` channel. All events are defined in the file `gol/event.go`. In this step, you will only be working with the unit test `TestGol`. Therefore, you only need to send the `FinalTurnComplete` event.
 
@@ -84,7 +84,7 @@ Test your serial, single-threaded code using `go test -v -run=TestGol/-1$`. All 
 
 Parallelise your Game of Life so that it uses worker threads to calculate the new state of the board. You should implement a distributor that tasks different worker threads to operate on different parts of the image in parallel. The number of worker threads you should create is specified in `gol.Params.Threads`.
 
-*Note: You are free to design your system as you see fit, however, we encourage you to primarily use channels*
+*Note: You are free to design your system as you see fit, however, we encourage you to primarily use worldChan*
 
 Test your code using `go test -v -run=TestGol`. You can use tracing to verify the correct number of workers was used this time.
 
@@ -279,7 +279,7 @@ In your report, explain the design of your fault tolerance mechanism. Conduct ex
 
 ### Memory Sharing
 
-Redesign your parallel implementation to use pure memory sharing. Replace *all* channels with traditional synchronisation mechanisms (mutexes, sempahores, condition variables). We recommend first replacing any channels used between the workers and the distributor. Then remove channels linking the distributor with the IO and with SDL. You should still keep them as seperate goroutines. Your solution must be free of deadlocks and race conditions.
+Redesign your parallel implementation to use pure memory sharing. Replace *all* worldChan with traditional synchronisation mechanisms (mutexes, sempahores, condition variables). We recommend first replacing any worldChan used between the workers and the distributor. Then remove worldChan linking the distributor with the IO and with SDL. You should still keep them as seperate goroutines. Your solution must be free of deadlocks and race conditions.
 
 Analyse the performance of your new solution and compare it with your previous implementation. Explain any differences observed.
 

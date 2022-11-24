@@ -110,23 +110,27 @@ type GolOperations struct{}
 
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
 
-	worldChan = req.WorldChan
+	worldChan <- req.World
 	var newWorld [][]uint8
 	pause = false
-	threads := 1
+	//threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
-
-		if pause {
-			<-waitToUnpause
-		}
-		if !pause /*&& !quit*/ {
-			turn = <-turnChan
-			if threads == 1 {
-				newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
-				worldChan <- newWorld
-			}
-		} /*else {
+		//turn = <-turnChan
+		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
+		worldChan <- newWorld
+		fmt.Println("Turn done on a server: ", turn)
+		turn++
+		//if pause {
+		//	<-waitToUnpause
+		//}
+		//if !pause /*&& !quit*/ {
+		//turn = <-turnChan
+		//if threads == 1 {
+		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
+		//worldChan <- newWorld
+		//}
+		/*} /*else {
 			if quit {
 				break
 			} else {
@@ -134,7 +138,8 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 			}
 		}*/
 	}
-
+	fmt.Println("Turn done on a server: ", turn)
+	res.World = newWorld
 	res.TurnsDone = turn
 	return
 }
@@ -142,27 +147,31 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 // kill := make(chan bool)
 
 func main() {
-	pAddr := flag.String("port", "8050", "Port to listen on")
-	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
+	//pAddr := flag.String("port", "8050", "Port to listen on")
+	//brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
-	client, err := rpc.Dial("tcp", *brokerAddr)
+	//client, err := rpc.Dial("tcp", *brokerAddr)
+	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
+	if err != nil {
+		fmt.Println(err)
+	}
+	rpc.Register(&GolOperations{})
+	//fmt.Println(*pAddr)
+	//fmt.Println(getOutboundIP() + ":" + *pAddr)
+	//listener, err := net.Listen("tcp", ":"+*pAddr)
+	fmt.Println("8050")
+	fmt.Println(getOutboundIP() + ":" + "8050")
+	listenerr, err := net.Listen("tcp", ":"+"8050")
 	if err != nil {
 		fmt.Println(err)
 	}
 	subscribe := stubs.SubscribeRequest{
-		WorkerAddress: getOutboundIP() + ":" + *pAddr,
+		//WorkerAddress: getOutboundIP() + ":" + *pAddr,
+		WorkerAddress: getOutboundIP() + ":" + "8050",
 	}
-
 	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
-	rpc.Register(&GolOperations{})
-	fmt.Println(*pAddr)
-	fmt.Println(getOutboundIP() + ":" + *pAddr)
-	listener, err := net.Listen("tcp", ":"+*pAddr)
-	if err != nil {
-		fmt.Println(err)
-	}
 	turnChan = make(chan int)
-	defer listener.Close()
-	rpc.Accept(listener)
+	defer listenerr.Close()
+	rpc.Accept(listenerr)
 
 }

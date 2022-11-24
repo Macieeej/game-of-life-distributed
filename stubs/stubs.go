@@ -46,13 +46,13 @@ type Request struct {
 }
 
 type WorkerRequest struct {
-	StartY    int
-	EndY      int
-	StartX    int
-	EndX      int
-	WorldChan chan [][]uint8
-	Turns     int
-	Params    Params
+	StartY int
+	EndY   int
+	StartX int
+	EndX   int
+	World  [][]uint8
+	Turns  int
+	Params Params
 }
 
 type PauseRequest struct {

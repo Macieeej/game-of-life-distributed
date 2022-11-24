@@ -229,6 +229,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	client.Call(stubs.MakeChannel, chanreq, chanres)
 
 	request := stubs.Request{World: world,
+		Threads:     p.Threads,
 		Turns:       p.Turns,
 		ImageWidth:  p.ImageWidth,
 		ImageHeight: p.ImageHeight}
@@ -238,7 +239,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	//world = response.World
 	//turn = response.TurnsDone
 
-	for {
+	/*for {
 		keypress := stubs.StateRequest{State: 5}
 		status := new(stubs.Response)
 		errr := client.Call(stubs.Publish, keypress, status)
@@ -250,8 +251,9 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		}
 		world = status.World
 		turn = status.TurnsDone
+		time.Sleep(2 * time.Second)
 		//fmt.Println("Turns done: ", turn)
-	}
+	}*/
 
 	ticker.Stop()
 	done <- true
