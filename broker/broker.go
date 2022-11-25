@@ -90,6 +90,7 @@ func getReport() {
 	report := new(stubs.Response)
 	for _, w := range workers {
 		w.worker.Call(stubs.Report, stubs.ActionRequest{Action: stubs.NoAction}, report)
+		completedTurns = report.TurnsDone
 		w.worldChannel <- World{
 			world: report.World,
 			turns: report.TurnsDone,

@@ -25,6 +25,9 @@ var waitToUnpause chan bool
 var turnChan chan int
 var worldChan chan [][]uint8
 
+var internalTurn chan int
+var internalWorld chan [][]uint8
+
 var globalWorld [][]uint8
 var completedTurns int
 
@@ -93,8 +96,9 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 type GolOperations struct{}
 
 func receiveFromBroker(t int, world [][]uint8) {
-	turnChan <- t
-	worldChan <- globalWorld
+	internalTurn <- t
+	internalWorld <- world
+
 }
 func sendToBroker() (int, [][]uint8) {
 	turn := <-turnChan
@@ -139,8 +143,10 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	//threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
-		turn = <-turnChan
-		globalWorld = <-worldChan
+		fmt.Println("A")
+		turn = <-internalTurn
+		fmt.Println("B")
+		globalWorld = <-internalWorld
 		fmt.Println("Calculating turn ")
 		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
@@ -151,6 +157,8 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 			copy(globalWorld[i], newWorld[i])
 		}
 		completedTurns = turn
+		turnChan <- turn
+		worldChan <- globalWorld
 		//if pause {
 		//	<-waitToUnpause
 		//}
