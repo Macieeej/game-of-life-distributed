@@ -11,18 +11,19 @@ var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
 var Publish = "Broker.Publish"
 
-const Save int = 0
-const Quit int = 1
-const Pause int = 2
-const UnPause int = 3
-const Kill int = 4
-const Ticker int = 5
+const NoAction int = 0
+const Save int = 1
+const Quit int = 2
+const Pause int = 3
+const UnPause int = 4
+const Kill int = 5
+const Ticker int = 6
 
 // REGISTER : DISTRIBUTOR
 // SUBSCRIBE : WORKER
 
 // (Broker -> Distributor)
-// Applies for Save, Kill, Ticker
+// Applies for Save, Kill, Tickturn := <-ner
 
 type Response struct {
 	World     [][]uint8
@@ -72,6 +73,15 @@ type RegisterRequest struct {
 	ImageHeight int
 }
 
+type UpdateRequest struct {
+	World [][]uint8
+	Turns int
+}
+
+type ActionRequest struct {
+	Action int
+}
+
 // ----------------- Keypresses --------------------
 
 // (Broker -> Distributor)
@@ -88,15 +98,9 @@ type StateRequest struct {
 }
 
 // ----------------- Ticker -----------------------
-// (Distributor -> Broker)
-type TickerRequest struct {
-}
 
+// (Distributor -> Broker)
 // (Broker -> Distributor)
-type TickerResponse struct {
-	CompletedTurns  int
-	AliveCellsCount int
-}
 
 // Response that doesn't require any additional data
 type StatusReport struct {

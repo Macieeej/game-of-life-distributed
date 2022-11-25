@@ -110,7 +110,7 @@ func subscribe(workerAddress string) (err error) {
 	go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, worker.worldChannel, p.Turns, worker)
 
 	if p.Threads == 1 && err == nil {
-		go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, channels[0], req.Turns, worker)
+		go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, channels[0], p.Turns, worker)
 
 	} else if err == nil {
 
@@ -129,28 +129,29 @@ func subscribe(workerAddress string) (err error) {
 			return
 		}
 
-	// } else {
-	// 	if len(workers) == p.Threads {
-	// 		unit := int(p.ImageHeight / p.Threads)
-	// 		for i := 0; i < p.Threads; i++ {
-	// 			channels[i] = make(chan [][]uint8)
-	// 			if i == p.Threads-1 {
-	// 				go subscribe_loop(i*unit, p.ImageHeight, 0, p.ImageWidth, world, workers[i].worldChannel, completedTurns, workers[i])
-	// 			} else {
-	// 				go subscribe_loop(i*unit, (i+1)*unit, 0, p.ImageWidth, world, workers[i].worldChannel, completedTurns, workers[i])
-	// 			}
-	// 		}
-	// 		go handleWorkers(unit)
-	// 	} else {
-	// 		return
-	// 	}
-	/*for i := 0; i < world.Threads; i++ {
-		worldPart := <-channels[i]
-		worldFragment = append(worldFragment, worldPart...)
+		// } else {
+		// 	if len(workers) == p.Threads {
+		// 		unit := int(p.ImageHeight / p.Threads)
+		// 		for i := 0; i < p.Threads; i++ {
+		// 			channels[i] = make(chan [][]uint8)
+		// 			if i == p.Threads-1 {
+		// 				go subscribe_loop(i*unit, p.ImageHeight, 0, p.ImageWidth, world, workers[i].worldChannel, completedTurns, workers[i])
+		// 			} else {
+		// 				go subscribe_loop(i*unit, (i+1)*unit, 0, p.ImageWidth, world, workers[i].worldChannel, completedTurns, workers[i])
+		// 			}
+		// 		}
+		// 		go handleWorkers(unit)
+		// 	} else {
+		// 		return
+		// 	}
+		/*for i := 0; i < world.Threads; i++ {
+			worldPart := <-channels[i]
+			worldFragment = append(worldFragment, worldPart...)
+		}
+		for j := range worldFragment {
+			copy(world.World[j], worldFragment[j])
+		}*/
 	}
-	for j := range worldFragment {
-		copy(world.World[j], worldFragment[j])
-	}*/
 	return
 }
 
@@ -202,8 +203,8 @@ func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) 
 
 // Calls and connects to the worker (Subscribe)
 func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusReport) (err error) {
-	request := stubs.WorkerRequest{StartY: 0, EndY: p.ImageHeight, StartX: 0, EndX: p.ImageWidth, WorldChan: channels[nextId], Turns: completedTurns, Params: p}
-	err = subscribe(request, req.WorkerAddress)
+	// request := stubs.WorkerRequest{StartY: 0, EndY: p.ImageHeight, StartX: 0, EndX: p.ImageWidth, WorldChan: channels[nextId], Turns: completedTurns, Params: p}
+	err = subscribe(req.WorkerAddress)
 	return
 }
 
