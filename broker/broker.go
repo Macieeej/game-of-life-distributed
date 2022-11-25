@@ -24,14 +24,17 @@ var workerId int
 // var theWorld World
 
 type World struct {
-	world       [][]uint8
+	world [][]uint8
+	turns int
+}
+
+type WorkerParams struct {
 	StartY      int
 	EndY        int
 	StartX      int
 	EndX        int
 	imageHeight int
 	imageWidth  int
-	turns       int
 }
 
 type Worker struct {
@@ -39,7 +42,8 @@ type Worker struct {
 	stateSwitch  int
 	worker       *rpc.Client
 	address      *string
-	worldChannel chan [][]uint8
+	params       WorkerParams
+	worldChannel chan World
 }
 
 type Params struct {
@@ -54,18 +58,18 @@ var world [][]uint8
 var completedTurns int
 
 // Handing out the world again to the worker.
-func handleWorkers(unit int) {
+func handleWorkers() {
+	getReport()
 	mergeWorld()
-	for i := 0; i < p.Threads; i++ {
-		workers[i].worldChannel <- world
-	}
+	updateWorld()
 }
 
 // Accepting every information about world progress and merging into a world.
 func mergeWorld() {
 	var newWorld [][]uint8
 	for _, w := range workers {
-		newWorld = append(newWorld, <-w.worldChannel...)
+		prevWorld := <-w.worldChannel
+		newWorld = append(newWorld, prevWorld.world...)
 	}
 
 	for i := range newWorld {
@@ -73,13 +77,33 @@ func mergeWorld() {
 	}
 }
 
+// Broker -> Server
+func updateWorld() {
+	for _, w := range workers {
+		w.worker.Call(stubs.UpdateWorld, stubs.UpdateRequest{World: world, Turns: completedTurns}, new(stubs.StatusReport))
+	}
+}
+
+// Server -> Broker
+func getReport() {
+	report := new(stubs.Response)
+	for _, w := range workers {
+		w.worker.Call(stubs.Report, stubs.ActionRequest{Action: stubs.NoAction}, report)
+		w.worldChannel <- World{
+			world: report.World,
+			turns: report.TurnsDone,
+		}
+	}
+
+}
+
 // Connect the worker in a loop
-func subscribe_loop(worldChanS chan World, worker *rpc.Client) {
+func subscribe_loop(w Worker, worldChanS chan World, worker *rpc.Client) {
 	for {
 		fmt.Println("Loooping")
 		worldS := <-worldChanS
 		response := new(stubs.Response)
-		workerReq := stubs.WorkerRequest{StartY: worldS.StartY, EndY: worldS.EndY, StartX: worldS.StartX, EndX: worldS.EndX, World: worldS.world, Turns: worldS.turns, Params: p}
+		workerReq := stubs.WorkerRequest{StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: worldS.world, Turns: worldS.turns, Params: p}
 		err := worker.Call(stubs.ProcessTurnsHandler, workerReq, response)
 		if err != nil {
 			fmt.Println("Error")
@@ -105,9 +129,10 @@ func subscribe(workerIdS int, workerAddress string) (err error) {
 	worldChanS := worldChan[workerIdS]
 	topicmx.RUnlock()
 	client, err := rpc.Dial("tcp", workerAddress)
+	newWorker := workers[workerIdS]
 	if err == nil {
 		fmt.Println("Looooop")
-		go subscribe_loop(worldChanS, client)
+		go subscribe_loop(newWorker, worldChanS, client)
 		workerId++
 	} else {
 		fmt.Println("Error subscribing ", workerAddress)
@@ -116,9 +141,7 @@ func subscribe(workerIdS int, workerAddress string) (err error) {
 	}
 	/*if p.Threads == 1 && err == nil {
 		go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, worldChan[0], req.Turns, worker)
-
 	} else if err == nil {
-
 		if len(workers) != p.Threads-1 {
 			unit := int(p.ImageHeight / p.Threads)
 			for i := 0; i < p.Threads; i++ {
@@ -133,13 +156,11 @@ func subscribe(workerIdS int, workerAddress string) (err error) {
 		} else {
 			return
 		}
-
 	} else {
 		fmt.Println(err)
 		return err
 	}*/
 
-	//workers = append(workers, worker)
 	//nextId++
 
 	return
@@ -155,7 +176,7 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	topicmx.RLock()
 	defer topicmx.RUnlock()
 	world = req.World
-	p.Turns = req.Turns
+	completedTurns = req.Turns
 	p.Threads = req.Threads
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
@@ -163,18 +184,19 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	// DONE: Make a channel for the world
 	if p.Threads == 1 && err == nil {
 		//go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, worldChan[0], req.Turns, worker)
-		worldChan[0] <- World{world: world, StartY: 0, EndY: p.ImageHeight, StartX: 0, EndX: p.ImageWidth, imageHeight: p.ImageHeight, imageWidth: p.ImageWidth, turns: req.Turns}
+		worldChan[0] <- World{world: world, turns: req.Turns}
 		fmt.Println("Created channel #", 0)
 	} else if err == nil {
 		if len(workers) != p.Threads-1 {
-			unit := int(p.ImageHeight / p.Threads)
+
 			for i := 0; i < p.Threads; i++ {
 				//worldChan[i] = make(chan [][]uint8)
 				if i == p.Threads-1 {
-					worldChan[i] <- World{world: world, StartY: i * unit, EndY: p.ImageHeight, StartX: 0, EndX: p.ImageWidth, imageHeight: p.ImageHeight, imageWidth: p.ImageWidth, turns: req.Turns}
+
+					worldChan[i] <- World{world: world, turns: req.Turns}
 					fmt.Println("Assigned world slice to the worldChan #", i)
 				} else {
-					worldChan[i] <- World{world: world, StartY: i * unit, EndY: (i + 1) * unit, StartX: 0, EndX: p.ImageWidth, imageHeight: p.ImageHeight, imageWidth: p.ImageWidth, turns: req.Turns}
+					worldChan[i] <- World{world: world, turns: req.Turns}
 					fmt.Println("Assigned world slice to the worldChan #", i)
 				}
 			}
@@ -220,8 +242,11 @@ func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) 
 
 // Calls and connects to the worker (Subscribe)
 func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusReport) (err error) {
-	// request := stubs.WorkerRequest{StartY: 0, EndY: p.ImageHeight, StartX: 0, EndX: p.ImageWidth, WorldChan: channels[nextId], Turns: completedTurns, Params: p}
-	err = subscribe(req.WorkerAddress)
+	//request := stubs.WorkerRequest{StartY: 0, EndY: p.ImageHeight, StartX: 0, EndX: p.ImageWidth, WorldChan: worldChan[nextId], Turns: completedTurns, Params: p}
+	err = subscribe(workerId, req.WorkerAddress)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return
 }
 
@@ -244,12 +269,10 @@ func (b *Broker) Pause(req stubs.PauseRequest, res *stubs.StatusReport) (err err
 
 func main() {
 	// Listens to the distributor
-
-	pAddr := flag.String("port", "8030", "Port to listen on")
+	//pAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
 	rpc.Register(&Broker{})
 	listener, _ := net.Listen("tcp", ":"+"8030")
 	defer listener.Close()
 	rpc.Accept(listener)
-
 }

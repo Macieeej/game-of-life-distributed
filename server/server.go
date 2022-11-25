@@ -89,6 +89,24 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 
 type GolOperations struct{}
 
+func receiveFromBroker(t int, world [][]uint8) {
+	turnChan <- t
+	worldChan <- world
+}
+func sendToBroker() (int, [][]uint8) {
+	turn := <-turnChan
+	world := <-worldChan
+	return turn, world
+}
+func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
+	res.TurnsDone, res.World = sendToBroker()
+	return
+}
+func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
+	receiveFromBroker(req.Turns, req.World)
+	return
+}
+
 // func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
 // 	listener.Close()
 // 	os.Exit(0)
@@ -103,27 +121,10 @@ type GolOperations struct{}
 // 	return
 // }
 
-func receiveFromBroker(t int, world [][]uint8) {
-	turnChan <- t
-	worldChan <- world
-}
-
-func sendToBroker() (int, [][]uint8) {
-	turn := <-turnChan
-	world := <-worldChan
-	return turn, world
-
-}
-
-func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
-	res.TurnsDone, res.World = sendToBroker()
-	return
-}
-
-func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
-	receiveFromBroker(req.Turns, req.World)
-	return
-}
+// func communicateBroker(t chan int) {
+// 	turn := <-t
+// 	Broker <- turn
+// }
 
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
 
@@ -157,8 +158,6 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 				continue
 			}
 		}*/
-		turnChan <- t
-		worldChan <- newWorld
 	}
 	fmt.Println("Turn done on a server: ", turn)
 	res.World = newWorld

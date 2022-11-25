@@ -69,7 +69,7 @@ func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, wor
 				action <- stubs.UnPause
 				turn := <-t
 				paused = true
-				newState := StateChange{CompletedTurns: turn, NewState: State(Pa(used)}
+				newState := StateChange{CompletedTurns: turn, NewState: State(Paused)}
 				fmt.Println(newState.String())
 				c.events <- newState
 			}

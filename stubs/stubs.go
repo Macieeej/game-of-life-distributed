@@ -10,6 +10,8 @@ var ConnectDistributor = "Broker.ConnectDistributor"
 var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
 var Publish = "Broker.Publish"
+var Report = "GolOperations.Report"
+var UpdateWorld = "GolOperation.UpdateWorld"
 
 const NoAction int = 0
 const Save int = 1
