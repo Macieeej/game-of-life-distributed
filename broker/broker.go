@@ -20,6 +20,7 @@ var workers []Worker
 var nextId = 0
 var topicmx sync.RWMutex
 var workerId int
+var unit int
 
 // var theWorld World
 
@@ -29,12 +30,10 @@ type World struct {
 }
 
 type WorkerParams struct {
-	StartY      int
-	EndY        int
-	StartX      int
-	EndX        int
-	imageHeight int
-	imageWidth  int
+	StartY int
+	EndY   int
+	StartX int
+	EndX   int
 }
 
 type Worker struct {
@@ -59,9 +58,11 @@ var completedTurns int
 
 // Handing out the world again to the worker.
 func handleWorkers() {
-	getReport()
-	mergeWorld()
-	updateWorld()
+	for {
+		getReport()
+		mergeWorld()
+		updateWorld()
+	}
 }
 
 // Accepting every information about world progress and merging into a world.
@@ -99,20 +100,20 @@ func getReport() {
 
 // Connect the worker in a loop
 func subscribe_loop(w Worker, worldChanS chan World, worker *rpc.Client) {
-	for {
-		fmt.Println("Loooping")
-		worldS := <-worldChanS
-		response := new(stubs.Response)
-		workerReq := stubs.WorkerRequest{StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: worldS.world, Turns: worldS.turns, Params: p}
-		err := worker.Call(stubs.ProcessTurnsHandler, workerReq, response)
-		if err != nil {
-			fmt.Println("Error")
-			fmt.Println(err)
-			fmt.Println("Closing subscriber thread.")
-			//worldChanS <- worldS
-		}
-		fmt.Println("Worker done", response.World, response.TurnsDone)
+	fmt.Println("Loooping")
+	worldS := <-worldChanS
+	response := new(stubs.Response)
+	go handleWorkers()
+	workerReq := stubs.WorkerRequest{StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: worldS.world, Turns: worldS.turns, Params: p}
+	err := worker.Call(stubs.ProcessTurnsHandler, workerReq, response)
+	if err != nil {
+		fmt.Println("Error")
+		fmt.Println(err)
+		fmt.Println("Closing subscriber thread.")
+		//worldChanS <- worldS
 	}
+	fmt.Println("Worker done")
+
 	/*for {
 		err := w.worker.Call(stubs.PauseHandler, workerReq, &response)
 		if err != nil {
@@ -129,13 +130,35 @@ func subscribe(workerIdS int, workerAddress string) (err error) {
 	worldChanS := worldChan[workerIdS]
 	topicmx.RUnlock()
 	client, err := rpc.Dial("tcp", workerAddress)
-
-	newWorker := Worker{
-		id:           workerIdS,
-		stateSwitch:  -1,
-		worker:       client,
-		address:      &workerAddress,
-		worldChannel: worldChanS,
+	var newWorker Worker
+	if workerIdS != p.Threads-1 {
+		newWorker = Worker{
+			id:           workerIdS,
+			stateSwitch:  -1,
+			worker:       client,
+			address:      &workerAddress,
+			worldChannel: worldChanS,
+			params: WorkerParams{
+				StartX: 0,
+				StartY: workerIdS * unit,
+				EndX:   p.ImageWidth,
+				EndY:   workerIdS * (unit + 1),
+			},
+		}
+	} else {
+		newWorker = Worker{
+			id:           workerIdS,
+			stateSwitch:  -1,
+			worker:       client,
+			address:      &workerAddress,
+			worldChannel: worldChanS,
+			params: WorkerParams{
+				StartX: 0,
+				StartY: workerIdS * unit,
+				EndX:   p.ImageWidth,
+				EndY:   p.ImageHeight,
+			},
+		}
 	}
 	workers = append(workers, newWorker)
 
@@ -190,6 +213,7 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
 	workerId = 0
+	unit = p.Threads / p.ImageWidth
 	// DONE: Make a channel for the world
 	if p.Threads == 1 && err == nil {
 		//go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, worldChan[0], req.Turns, worker)

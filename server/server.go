@@ -25,6 +25,12 @@ var waitToUnpause chan bool
 var turnChan chan int
 var worldChan chan [][]uint8
 
+var globalWorld [][]uint8
+var completedTurns int
+
+var receive chan bool
+var send chan bool
+
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
 	defer conn.Close()
@@ -60,7 +66,7 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	newWorld := make([][]byte, endY-startY)
 	flipCell := make([]util.Cell, height, width)
 	for i := 0; i < endY-startY; i++ {
-		newWorld[i] = make([]byte, len(world[0]))
+		newWorld[i] = make([]byte, width)
 		// copy(newWorld[i], world[startY+i])
 	}
 
@@ -91,11 +97,13 @@ type GolOperations struct{}
 
 func receiveFromBroker(t int, world [][]uint8) {
 	turnChan <- t
-	worldChan <- world
+	worldChan <- globalWorld
+	receive <- true
 }
 func sendToBroker() (int, [][]uint8) {
 	turn := <-turnChan
 	world := <-worldChan
+	send <- true
 	return turn, world
 }
 func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
@@ -137,11 +145,15 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	for t := 0; t < req.Turns; t++ {
 		//turn = <-turnChan
 		fmt.Println("Calculating turn ")
-		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, req.World)
+		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
 		//worldChan <- newWorld
 		fmt.Println("Turn done on a server: ", turn)
 		turn++
+		for i := range newWorld {
+			copy(globalWorld[i], newWorld[i])
+		}
+		completedTurns = turn
 		//if pause {
 		//	<-waitToUnpause
 		//}
