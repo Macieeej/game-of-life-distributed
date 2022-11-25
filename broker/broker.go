@@ -76,6 +76,7 @@ func mergeWorld() {
 // Connect the worker in a loop
 func subscribe_loop(worldChanS chan World, worker *rpc.Client) {
 	for {
+		fmt.Println("Loooping")
 		worldS := <-worldChanS
 		response := new(stubs.Response)
 		workerReq := stubs.WorkerRequest{StartY: worldS.StartY, EndY: worldS.EndY, StartX: worldS.StartX, EndX: worldS.EndX, World: worldS.world, Turns: worldS.turns, Params: p}
@@ -105,6 +106,7 @@ func subscribe(workerIdS int, workerAddress string) (err error) {
 	topicmx.RUnlock()
 	client, err := rpc.Dial("tcp", workerAddress)
 	if err == nil {
+		fmt.Println("Looooop")
 		go subscribe_loop(worldChanS, client)
 		workerId++
 	} else {
