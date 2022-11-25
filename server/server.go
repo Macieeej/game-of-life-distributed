@@ -28,9 +28,6 @@ var worldChan chan [][]uint8
 var globalWorld [][]uint8
 var completedTurns int
 
-var receive chan bool
-var send chan bool
-
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
 	defer conn.Close()
@@ -98,12 +95,11 @@ type GolOperations struct{}
 func receiveFromBroker(t int, world [][]uint8) {
 	turnChan <- t
 	worldChan <- globalWorld
-	receive <- true
 }
 func sendToBroker() (int, [][]uint8) {
 	turn := <-turnChan
 	world := <-worldChan
-	send <- true
+
 	return turn, world
 }
 func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
@@ -143,7 +139,8 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	//threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
-		//turn = <-turnChan
+		turn = <-turnChan
+		globalWorld = <-worldChan
 		fmt.Println("Calculating turn ")
 		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)

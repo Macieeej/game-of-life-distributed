@@ -127,6 +127,7 @@ func subscribe_loop(w Worker, worldChanS chan World, worker *rpc.Client) {
 func subscribe(workerIdS int, workerAddress string) (err error) {
 	fmt.Println("Subscription request")
 	topicmx.RLock()
+	//worldChanS := worldChan[workerIdS]
 	worldChanS := worldChan[workerIdS]
 	topicmx.RUnlock()
 	client, err := rpc.Dial("tcp", workerAddress)
