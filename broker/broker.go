@@ -129,7 +129,16 @@ func subscribe(workerIdS int, workerAddress string) (err error) {
 	worldChanS := worldChan[workerIdS]
 	topicmx.RUnlock()
 	client, err := rpc.Dial("tcp", workerAddress)
-	newWorker := workers[workerIdS]
+
+	newWorker := Worker{
+		id:           workerIdS,
+		stateSwitch:  -1,
+		worker:       client,
+		address:      &workerAddress,
+		worldChannel: worldChanS,
+	}
+	workers = append(workers, newWorker)
+
 	if err == nil {
 		fmt.Println("Looooop")
 		go subscribe_loop(newWorker, worldChanS, client)
