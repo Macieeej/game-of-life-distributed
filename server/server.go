@@ -127,15 +127,18 @@ func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusRe
 
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
 
-	worldChan <- req.World
+	fmt.Println("Processing")
+	//worldChan <- req.World
 	var newWorld [][]uint8
 	pause = false
 	//threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
 		//turn = <-turnChan
-		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
-		worldChan <- newWorld
+		fmt.Println("Calculating turn ")
+		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, req.World)
+		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
+		//worldChan <- newWorld
 		fmt.Println("Turn done on a server: ", turn)
 		turn++
 		//if pause {
