@@ -21,7 +21,7 @@ Note that if you only attempt the parallel component of the assignment, you will
 
 ### A little more advanced
 
-- Consider implementing and benchmarking differently parameterised and differently designed implementations. For example, a pure channels implementation which does not use shared memory.  
+- Consider implementing and benchmarking differently parameterised and differently designed implementations. For example, a pure worldChan implementation which does not use shared memory.  
 - To go a little deeper, look at [question 1g](https://github.com/UoB-CSA/concurrency-lab-1#optional-question-1g)  which involves use of [the powerful tool, pprof](https://go.dev/blog/pprof) and [question 1i](https://github.com/UoB-CSA/concurrency-lab-1#optional-question-1i).
 - Using these tools for GOL will add extra depth to your report.
 - Only a few groups did this last year so do not worry if you do not complete this part
