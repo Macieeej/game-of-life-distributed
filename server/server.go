@@ -155,6 +155,7 @@ func main() {
 
 	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	rpc.Register(&GolOperations{})
+	fmt.Println(*pAddr)
 	fmt.Println(getOutboundIP() + ":" + *pAddr)
 	listener, err := net.Listen("tcp", ":"+*pAddr)
 	if err != nil {

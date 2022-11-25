@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
+	"sync"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
 )
@@ -17,6 +18,7 @@ import (
 var channels []chan [][]uint8
 var workers []Worker
 var nextId = 0
+var topicmx sync.RWMutex
 
 // var theWorld World
 
@@ -69,6 +71,14 @@ func subscribe_loop(startY, endY, startX, endX int, world [][]uint8, out chan<- 
 		fmt.Println(err)
 	}
 
+	for {
+		err := w.worker.Call(stubs.PauseHandler, workerReq, &response)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			break
+		}
+	}
+
 	// for {
 	// 	//registerReq := stubs.RegisterRequest{WorkerAddress: *w.address}
 	// 	err := w.worker.Call(stubs.PauseHandler, workerReq, &response)
@@ -99,12 +109,25 @@ func subscribe(workerAddress string) (err error) {
 	workers = append(workers, worker)
 	go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, worker.worldChannel, p.Turns, worker)
 
-	// if p.Threads == 1 {
-	/*worldPart := <-channels[0]
-	    worldFragment = append(worldFragment, worldPart...)
-		for j := range worldFragment {
-			copy(world.World[j], worldFragment[j])
-		}*/
+	if p.Threads == 1 && err == nil {
+		go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, channels[0], req.Turns, worker)
+
+	} else if err == nil {
+
+		if len(workers) != p.Threads-1 {
+			unit := int(p.ImageHeight / p.Threads)
+			for i := 0; i < p.Threads; i++ {
+				channels[i] = make(chan [][]uint8)
+				if i == p.Threads-1 {
+					go subscribe_loop(i*unit, p.ImageHeight, 0, p.ImageWidth, world, workers[i].worldChannel, completedTurns, workers[i])
+				} else {
+					go subscribe_loop(i*unit, (i+1)*unit, 0, p.ImageWidth, world, workers[i].worldChannel, completedTurns, workers[i])
+				}
+			}
+			go handleWorkers(unit)
+		} else {
+			return
+		}
 
 	// } else {
 	// 	if len(workers) == p.Threads {
@@ -143,7 +166,7 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.Threads = req.Threads
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
-	// channels = make([]chan [][]uint8, p.Threads)
+	//channels = make([]chan [][]uint8, p.Threads)
 	go register_loop()
 	return err
 }
@@ -153,6 +176,17 @@ func makeChannel(threads int) {
 	for i := range channels {
 		fmt.Println("Created channel #", i)
 	}
+}
+
+func publish(req stubs.StateRequest) (err error) {
+	/*topicmx.RLock()
+	defer topicmx.RUnlock()
+	if ch, ok := topics[topic]; ok {
+		ch <- pair
+	} else {
+		return errors.New("No such topic.")
+	}*/
+	return
 }
 
 type Broker struct{}
@@ -168,14 +202,22 @@ func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) 
 
 // Calls and connects to the worker (Subscribe)
 func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusReport) (err error) {
-	err = subscribe(req.WorkerAddress)
-	return err
+	request := stubs.WorkerRequest{StartY: 0, EndY: p.ImageHeight, StartX: 0, EndX: p.ImageWidth, WorldChan: channels[nextId], Turns: completedTurns, Params: p}
+	err = subscribe(request, req.WorkerAddress)
+	return
 }
 
 // (Publish)
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.StatusReport) (err error) {
 	err = registerDistributor(req, res)
 	return
+}
+
+func (b *Broker) Publish(req stubs.StateRequest, res *stubs.Response) (err error) {
+	res.World = world
+	res.TurnsDone = completedTurns
+	err = publish(stubs.StateRequest{State: req.State})
+	return err
 }
 
 func (b *Broker) Pause(req stubs.PauseRequest, res *stubs.StatusReport) (err error) {
