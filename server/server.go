@@ -143,10 +143,12 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	//threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
-		fmt.Println("A")
-		turn = <-internalTurn
-		fmt.Println("B")
-		globalWorld = <-internalWorld
+		if t != 0 {
+			turn = <-internalTurn
+			globalWorld = <-internalWorld
+		} else {
+			globalWorld = req.World
+		}
 		fmt.Println("Calculating turn ")
 		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
@@ -157,8 +159,11 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 			copy(globalWorld[i], newWorld[i])
 		}
 		completedTurns = turn
+		fmt.Println(completedTurns)
 		turnChan <- turn
+		fmt.Println(turn)
 		worldChan <- globalWorld
+		fmt.Println("B")
 		//if pause {
 		//	<-waitToUnpause
 		//}

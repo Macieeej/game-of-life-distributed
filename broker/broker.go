@@ -60,8 +60,6 @@ var completedTurns int
 func handleWorkers() {
 	for {
 		getReport()
-		mergeWorld()
-		updateWorld()
 	}
 }
 
@@ -88,6 +86,7 @@ func updateWorld() {
 // Server -> Broker
 func getReport() {
 	report := new(stubs.Response)
+	go mergeWorld()
 	for _, w := range workers {
 		w.worker.Call(stubs.Report, stubs.ActionRequest{Action: stubs.NoAction}, report)
 		completedTurns = report.TurnsDone
@@ -96,7 +95,7 @@ func getReport() {
 			turns: report.TurnsDone,
 		}
 	}
-
+	updateWorld()
 }
 
 // Connect the worker in a loop
@@ -104,9 +103,9 @@ func subscribe_loop(w Worker, worldChanS chan World, worker *rpc.Client) {
 	fmt.Println("Loooping")
 	worldS := <-worldChanS
 	response := new(stubs.Response)
-	go handleWorkers()
 	workerReq := stubs.WorkerRequest{StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: worldS.world, Turns: worldS.turns, Params: p}
-	err := worker.Call(stubs.ProcessTurnsHandler, workerReq, response)
+	err := worker.Go(stubs.ProcessTurnsHandler, workerReq, response, nil)
+	handleWorkers()
 	if err != nil {
 		fmt.Println("Error")
 		fmt.Println(err)
