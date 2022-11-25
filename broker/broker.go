@@ -209,7 +209,7 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	topicmx.RLock()
 	defer topicmx.RUnlock()
 	world = req.World
-	completedTurns = req.Turns
+	p.Turns = req.Turns
 	p.Threads = req.Threads
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
