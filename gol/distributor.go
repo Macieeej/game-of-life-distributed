@@ -156,29 +156,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	// pause := false
 	quit := false
 	//waitToUnpause := make(chan bool)
-	go func() {
-		for {
-			if !quit {
-				select {
-				case <-done:
-					return
-					// TODO : Get the report from the broker.
-					// The distributor doesn't know the exact turn every time,
-					// But only knows when some events happen (Ticker, save, ..)
-				case <-ticker.C:
-
-					aliveCount, _ := calculateAliveCells(p, world)
-					aliveReport := AliveCellsCount{
-						CompletedTurns: turn,
-						CellsCount:     aliveCount,
-					}
-					c.events <- aliveReport
-				}
-			} else {
-				return
-			}
-		}
-	}()
 
 	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
 	// TODO : Connect with the broker, not the worker
@@ -193,6 +170,41 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	turnChan := make(chan int)
 	worldChan := make(chan [][]uint8)
 	action := make(chan int)
+
+	go func() {
+		for {
+			if !quit {
+				select {
+				case <-done:
+					return
+					// TODO : Get the report from the broker.
+					// The distributor doesn't know the exact turn every time,
+					// But only knows when some events happen (Ticker, save, ..)
+				case <-ticker.C:
+					// TODO : Get the report from the broker.
+					tickerRequest := stubs.TickerRequest{}
+					response := new(stubs.Response)
+					errr := client.Call(stubs.Publish, tickerRequest, response)
+					if errr != nil {
+						fmt.Println("RPC client returned error:")
+						fmt.Println(errr)
+						fmt.Println("Shutting down miner.")
+						break
+					}
+					world = response.World
+					turn = response.TurnsDone
+					aliveCount, _ := calculateAliveCells(p, world)
+					aliveReport := AliveCellsCount{
+						CompletedTurns: turn,
+						CellsCount:     aliveCount,
+					}
+					c.events <- aliveReport
+				}
+			} else {
+				return
+			}
+		}
+	}()
 
 	// TODO : Pass the keypress arguments to the broker.
 	go handleKeyPress(p, c, keyPresses, worldChan, turnChan, action)

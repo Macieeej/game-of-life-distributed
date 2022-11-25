@@ -155,7 +155,8 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	topicmx.RLock()
 	defer topicmx.RUnlock()
 	world = req.World
-	completedTurns = req.Turns
+	//completedTurns = req.Turns
+	completedTurns = 0
 	p.Threads = req.Threads
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
@@ -234,10 +235,10 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.StatusReport) 
 	return
 }
 
-func (b *Broker) Publish(req stubs.StateRequest, res *stubs.Response) (err error) {
+func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err error) {
 	res.World = world
 	res.TurnsDone = completedTurns
-	err = publish(stubs.StateRequest{State: req.State})
+	//err = publish(stubs.StateRequest{State: req.State})
 	return err
 }
 
