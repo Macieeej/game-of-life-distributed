@@ -85,7 +85,7 @@ func getReport() {
 func subscribe_loop(w Worker) {
 	fmt.Println("Loooping")
 	response := new(stubs.Response)
-	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
+	workerReq := stubs.WorkerRequest{StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
 	err := w.worker.Go(stubs.ProcessTurnsHandler, workerReq, response, nil)
 	//go handleWorkers()
 	if err != nil {
@@ -279,9 +279,7 @@ func updateBroker(ubturns int, ubworld [][]uint8) error {
 			world: ubworld,
 			turns: ubturns,
 		}
-		//fmt.Println("Turn update Broker:", ubturns)
 	}
-	completedTurns = ubturns
 	//fmt.Println("mergeWorld")
 	//mergeWorld()
 	//return errors.New("Broker did not update.")
@@ -299,21 +297,10 @@ func (b *Broker) UpdateBroker(req stubs.UpdateRequest, res *stubs.StatusReport) 
 	return err
 }
 
-/*func (b *Broker) UpdateWorker(req stubs.TickerRequest, res *stubs.UpdateRequest) (err error) {
-	res.World = world
-	res.Turns = completedTurns
-	return nil
-}*/
-
 func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
 	makeChannel(req.Threads)
 	return
 }
-
-/*func (b *Broker) MakeChannelFromWorker(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
-	makeChannel(req.Threads)
-	return
-}*/
 
 // Calls and connects to the worker (Subscribe)
 func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusReport) (err error) {
