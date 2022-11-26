@@ -23,10 +23,9 @@ var pause bool
 var waitToUnpause chan bool
 
 var turnChan chan int
+var turnInternal chan int
 var worldChan chan [][]uint8
-
-var internalTurn chan int
-var internalWorld chan [][]uint8
+var worldInternal chan [][]uint8
 
 var globalWorld [][]uint8
 var completedTurns int
@@ -93,19 +92,33 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	return newWorld, flipCell
 }
 
-type GolOperations struct{}
+func receive() {
+	t := <-turnChan
+	world := <-worldChan
+	turnInternal <- t
+	worldInternal <- world
+}
+
+func send() {
+	t := <-turnInternal
+	world := <-worldInternal
+	turnChan <- t
+	worldChan <- world
+}
 
 func receiveFromBroker(t int, world [][]uint8) {
-	internalTurn <- t
-	internalWorld <- world
+	turnChan <- t
+	worldChan <- world
 
 }
 func sendToBroker() (int, [][]uint8) {
 	turn := <-turnChan
 	world := <-worldChan
-
 	return turn, world
 }
+
+type GolOperations struct{}
+
 func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
 	res.TurnsDone, res.World = sendToBroker()
 	return
@@ -137,51 +150,26 @@ func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusRe
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
 
 	fmt.Println("Processing")
-	//worldChan <- req.World
 	var newWorld [][]uint8
 	pause = false
-	//threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
 		if t != 0 {
-			turn = <-internalTurn
-			globalWorld = <-internalWorld
+			turn = <-turnInternal
+			globalWorld = <-worldInternal
 		} else {
 			globalWorld = req.World
 		}
-		fmt.Println("Calculating turn ")
 		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
-		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
-		//worldChan <- newWorld
-		fmt.Println("Turn done on a server: ", turn)
 		turn++
 		for i := range newWorld {
 			copy(globalWorld[i], newWorld[i])
 		}
 		completedTurns = turn
-		fmt.Println(completedTurns)
-		turnChan <- turn
+		turnInternal <- turn
+		worldInternal <- globalWorld
 		fmt.Println(turn)
-		worldChan <- globalWorld
-		fmt.Println("B")
-		//if pause {
-		//	<-waitToUnpause
-		//}
-		//if !pause /*&& !quit*/ {
-		//turn = <-turnChan
-		//if threads == 1 {
-		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
-		//worldChan <- newWorld
-		//}
-		/*} /*else {
-			if quit {
-				break
-			} else {
-				continue
-			}
-		}*/
 	}
-	fmt.Println("Turn done on a server: ", turn)
 	res.World = newWorld
 	res.TurnsDone = turn
 	return
@@ -202,7 +190,6 @@ func main() {
 	//fmt.Println(*pAddr)
 	//fmt.Println(getOutboundIP() + ":" + *pAddr)
 	//listener, err := net.Listen("tcp", ":"+*pAddr)
-	fmt.Println("8050")
 	fmt.Println(getOutboundIP() + ":" + "8050")
 	listenerr, err := net.Listen("tcp", ":"+"8050")
 	if err != nil {
@@ -212,8 +199,15 @@ func main() {
 		//WorkerAddress: getOutboundIP() + ":" + *pAddr,
 		WorkerAddress: getOutboundIP() + ":" + "8050",
 	}
-	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	turnChan = make(chan int)
+	turnInternal = make(chan int)
+	worldChan = make(chan [][]uint8)
+	worldInternal = make(chan [][]uint8)
+
+	go receive()
+	go send()
+
+	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	defer listenerr.Close()
 	rpc.Accept(listenerr)
 
