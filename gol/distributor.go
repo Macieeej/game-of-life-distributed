@@ -156,6 +156,17 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	// pause := false
 	quit := false
 	//waitToUnpause := make(chan bool)
+
+	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
+	// TODO : Connect with the broker, not the worker
+	// Use Register Request (via RPC)
+	flag.Parse()
+	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+	defer client.Close()
+
 	go func() {
 		for {
 			if !quit {
@@ -167,6 +178,19 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 					// But only knows when some events happen (Ticker, save, ..)
 				case <-ticker.C:
 
+					// TODO : Get the report from the broker.
+					tickerRequest := stubs.TickerRequest{}
+					response := new(stubs.Response)
+					errr := client.Call(stubs.Publish, tickerRequest, response)
+					if errr != nil {
+						fmt.Println("RPC client returned error:")
+						fmt.Println(errr)
+						fmt.Println("Shutting down miner.")
+						break
+					}
+					world = response.World
+					turn = response.TurnsDone
+					fmt.Println("ticker")
 					aliveCount, _ := calculateAliveCells(p, world)
 					aliveReport := AliveCellsCount{
 						CompletedTurns: turn,
@@ -179,16 +203,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 			}
 		}
 	}()
-
-	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
-	// TODO : Connect with the broker, not the worker
-	// Use Register Request (via RPC)
-	flag.Parse()
-	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
-	if err != nil {
-		log.Fatal("dialing:", err)
-	}
-	defer client.Close()
 
 	turnChan := make(chan int)
 	worldChan := make(chan [][]uint8)

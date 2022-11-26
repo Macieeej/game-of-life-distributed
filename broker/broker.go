@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/rpc"
 	"sync"
-
 	"uk.ac.bris.cs/gameoflife/stubs"
 )
 
@@ -50,30 +49,22 @@ var world [][]uint8
 var completedTurns int
 
 // Handing out the world again to the worker.
-func handleWorkers() {
-	getReport()
-	go mergeWorld()
-}
-
-// Accepting every information about world progress and merging into a world.
-func mergeWorld() {
-	var newWorld [][]uint8
-	for _, w := range workers {
-		prevWorld := <-w.worldChannel
-		newWorld = append(newWorld, prevWorld.world...)
+/*func handleWorkers() {
+	for {
+		updateWorld()
+		getReport()
+		mergeWorld()
 	}
+}*/
 
-	for i := range newWorld {
-		copy(world[i], newWorld[i])
-	}
-}
-
-// Broker -> Server
+/*// Broker -> Server
 func updateWorld() {
 	for _, w := range workers {
+		fmt.Println("Updating world")
 		w.worker.Call(stubs.UpdateWorld, stubs.UpdateRequest{World: world, Turns: completedTurns}, new(stubs.StatusReport))
+		fmt.Println("Updated world")
 	}
-	getReport()
+	//getReport()
 }
 
 // Server -> Broker
@@ -87,24 +78,39 @@ func getReport() {
 			turns: report.TurnsDone,
 		}
 	}
-	updateWorld()
-}
+	//updateWorld()
+}*/
 
 // Connect the worker in a loop
 func subscribe_loop(w Worker) {
 	fmt.Println("Loooping")
 	response := new(stubs.Response)
-	workerReq := stubs.WorkerRequest{StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
+	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
 	err := w.worker.Go(stubs.ProcessTurnsHandler, workerReq, response, nil)
-	handleWorkers()
+	//go handleWorkers()
 	if err != nil {
-		fmt.Println("Error")
-		// fmt.Println(err)
+		fmt.Println("Error calling ProcessTurnsHandler")
+		//fmt.Println(err)
 		fmt.Println("Closing subscriber thread.")
 		//worldChanS <- worldS
 	}
-	fmt.Println("Worker done")
-
+	//time.Sleep(5 * time.Second)
+	for {
+		wt := <-w.worldChannel
+		updateResponse := new(stubs.StatusReport)
+		updateRequest := stubs.UpdateRequest{World: wt.world, Turns: wt.turns}
+		err := w.worker.Call(stubs.UpdateWorker, updateRequest, updateResponse)
+		if err != nil {
+			fmt.Println("Error calling UpdateWorker")
+			//fmt.Println(err)
+			fmt.Println("Closing subscriber thread.")
+			//Place the unfulfilled job back on the topic channel.
+			w.worldChannel <- wt
+			break
+		}
+		fmt.Println(updateResponse.Status)
+	}
+	//fmt.Println("Worker done", response.TurnsDone, response.World)
 	/*for {
 		err := w.worker.Call(stubs.PauseHandler, workerReq, &response)
 		if err != nil {
@@ -201,6 +207,7 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
 	unit = p.Threads / p.ImageWidth
+	completedTurns = 0
 	// DONE: Make a channel for the world
 	// if p.Threads == 1 && err == nil {
 	// 	//go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, worldChan[0], req.Turns, worker)
@@ -249,16 +256,64 @@ func publish(req stubs.StateRequest) (err error) {
 	return
 }
 
+// Accepting every information about world progress and merging into a world.
+func mergeWorld() {
+
+	var newWorld [][]uint8
+	for _, w := range workers {
+		prevWorld := <-w.worldChannel
+		newWorld = append(newWorld, prevWorld.world...)
+	}
+
+	for i := range newWorld {
+		copy(world[i], newWorld[i])
+	}
+
+}
+func updateBroker(ubturns int, ubworld [][]uint8) error {
+	topicmx.RLock()
+	defer topicmx.RUnlock()
+	for _, w := range workers {
+		fmt.Println("Sending update to worker #", w.id)
+		w.worldChannel <- World{
+			world: ubworld,
+			turns: ubturns,
+		}
+		//fmt.Println("Turn update Broker:", ubturns)
+	}
+	completedTurns = ubturns
+	//fmt.Println("mergeWorld")
+	//mergeWorld()
+	//return errors.New("Broker did not update.")
+	return nil
+}
+
 type Broker struct{}
 
 // func (b *Broker) ReportStatus(req stubs.StateRequest, req *stubs.Response) (err error) {
 // 	return err
 // }
 
+func (b *Broker) UpdateBroker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
+	err = updateBroker(req.Turns, req.World)
+	return err
+}
+
+/*func (b *Broker) UpdateWorker(req stubs.TickerRequest, res *stubs.UpdateRequest) (err error) {
+	res.World = world
+	res.Turns = completedTurns
+	return nil
+}*/
+
 func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
 	makeChannel(req.Threads)
 	return
 }
+
+/*func (b *Broker) MakeChannelFromWorker(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
+	makeChannel(req.Threads)
+	return
+}*/
 
 // Calls and connects to the worker (Subscribe)
 func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusReport) (err error) {
@@ -270,16 +325,15 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 	return
 }
 
-// (Publish)
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.StatusReport) (err error) {
 	err = registerDistributor(req, res)
 	return
 }
 
-func (b *Broker) Publish(req stubs.StateRequest, res *stubs.Response) (err error) {
+func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err error) {
 	res.World = world
 	res.TurnsDone = completedTurns
-	err = publish(stubs.StateRequest{State: req.State})
+	//err = publish(stubs.StateRequest{State: req.State})
 	return err
 }
 
