@@ -23,7 +23,12 @@ var pause bool
 var waitToUnpause chan bool
 
 var turnChan chan int
+var turnInternal chan int
 var worldChan chan [][]uint8
+var worldInternal chan [][]uint8
+
+var globalWorld [][]uint8
+var completedTurns int
 
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
@@ -60,7 +65,7 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	newWorld := make([][]byte, endY-startY)
 	flipCell := make([]util.Cell, height, width)
 	for i := 0; i < endY-startY; i++ {
-		newWorld[i] = make([]byte, len(world[0]))
+		newWorld[i] = make([]byte, width)
 		// copy(newWorld[i], world[startY+i])
 	}
 
@@ -87,7 +92,41 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	return newWorld, flipCell
 }
 
+func receive() {
+	t := <-turnChan
+	world := <-worldChan
+	turnInternal <- t
+	worldInternal <- world
+}
+
+func send() {
+	t := <-turnInternal
+	world := <-worldInternal
+	turnChan <- t
+	worldChan <- world
+}
+
+func receiveFromBroker(t int, world [][]uint8) {
+	turnChan <- t
+	worldChan <- world
+
+}
+func sendToBroker() (int, [][]uint8) {
+	turn := <-turnChan
+	world := <-worldChan
+	return turn, world
+}
+
 type GolOperations struct{}
+
+func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
+	res.TurnsDone, res.World = sendToBroker()
+	return
+}
+func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
+	receiveFromBroker(req.Turns, req.World)
+	return
+}
 
 // func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
 // 	listener.Close()
@@ -103,64 +142,34 @@ type GolOperations struct{}
 // 	return
 // }
 
-func receiveFromBroker(t int, world [][]uint8) {
-	turnChan <- t
-	worldChan <- world
-}
-
-func sendToBroker() (int, [][]uint8) {
-	turn := <-turnChan
-	world := <-worldChan
-	return turn, world
-
-}
-
-func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
-	res.TurnsDone, res.World = sendToBroker()
-	return
-}
-
-func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
-	receiveFromBroker(req.Turns, req.World)
-	return
-}
+// func communicateBroker(t chan int) {
+// 	turn := <-t
+// 	Broker <- turn
+// }
 
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
 
 	fmt.Println("Processing")
-	//worldChan <- req.World
 	var newWorld [][]uint8
 	pause = false
-	//threads := 1
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
-		//turn = <-turnChan
-		fmt.Println("Calculating turn ")
-		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, req.World)
-		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
-		//worldChan <- newWorld
-		fmt.Println("Turn done on a server: ", turn)
+		if t != 0 {
+			turn = <-turnInternal
+			globalWorld = <-worldInternal
+		} else {
+			globalWorld = req.World
+		}
+		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 		turn++
-		//if pause {
-		//	<-waitToUnpause
-		//}
-		//if !pause /*&& !quit*/ {
-		//turn = <-turnChan
-		//if threads == 1 {
-		//newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, 0, req.Params.ImageHeight, <-worldChan)
-		//worldChan <- newWorld
-		//}
-		/*} /*else {
-			if quit {
-				break
-			} else {
-				continue
-			}
-		}*/
-		turnChan <- t
-		worldChan <- newWorld
+		for i := range newWorld {
+			copy(globalWorld[i], newWorld[i])
+		}
+		completedTurns = turn
+		turnInternal <- turn
+		worldInternal <- globalWorld
+		fmt.Println(turn)
 	}
-	fmt.Println("Turn done on a server: ", turn)
 	res.World = newWorld
 	res.TurnsDone = turn
 	return
@@ -181,7 +190,6 @@ func main() {
 	//fmt.Println(*pAddr)
 	//fmt.Println(getOutboundIP() + ":" + *pAddr)
 	//listener, err := net.Listen("tcp", ":"+*pAddr)
-	fmt.Println("8050")
 	fmt.Println(getOutboundIP() + ":" + "8050")
 	listenerr, err := net.Listen("tcp", ":"+"8050")
 	if err != nil {
@@ -191,8 +199,15 @@ func main() {
 		//WorkerAddress: getOutboundIP() + ":" + *pAddr,
 		WorkerAddress: getOutboundIP() + ":" + "8050",
 	}
-	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	turnChan = make(chan int)
+	turnInternal = make(chan int)
+	worldChan = make(chan [][]uint8)
+	worldInternal = make(chan [][]uint8)
+
+	go receive()
+	go send()
+
+	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	defer listenerr.Close()
 	rpc.Accept(listenerr)
 

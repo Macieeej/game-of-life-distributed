@@ -2,7 +2,7 @@ package stubs
 
 var ProcessTurnsHandler = "GolOperations.Process"
 
-//var OperationsHandler = "GolOperations.Operations"
+// var OperationsHandler = "GolOperations.Operations"
 var JobHandler = "GolOperations.ListenToWork"
 var PauseHandler = "GolOperations.ListenToPause"
 var BrokerAndWorker = "Broker.ConnectWorker"
@@ -10,6 +10,8 @@ var ConnectDistributor = "Broker.ConnectDistributor"
 var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
 var Publish = "Broker.Publish"
+var Report = "GolOperations.Report"
+var UpdateWorld = "GolOperation.UpdateWorld"
 
 const NoAction int = 0
 const Save int = 1
@@ -23,7 +25,14 @@ const Ticker int = 6
 // SUBSCRIBE : WORKER
 
 // (Broker -> Distributor)
-// Applies for Save, Kill, Tickturn := <-ner
+// Applies for Save, Kill, Ticker
+
+type Params struct {
+	Threads     int
+	ImageHeight int
+	ImageWidth  int
+	Turns       int
+}
 
 type Response struct {
 	World     [][]uint8
@@ -36,13 +45,6 @@ type Request struct {
 	Turns       int
 	ImageWidth  int
 	ImageHeight int
-}
-
-type Params struct {
-	Threads     int
-	ImageHeight int
-	ImageWidth  int
-	Turns       int
 }
 
 type WorkerRequest struct {
