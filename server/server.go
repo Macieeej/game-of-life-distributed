@@ -27,6 +27,8 @@ var turnChan chan int
 var worldChan chan [][]uint8
 
 // updateWorker
+var workerTurnChan chan int
+var workerWorldChan chan [][]uint8
 
 var turnInternal chan int
 var worldInternal chan [][]uint8
@@ -178,6 +180,21 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	}
 }
 
+/*func UpdateWorker2(client *rpc.Client) {
+	for {
+		towork := stubs.TickerRequest{}
+		brokerResponse := new(stubs.UpdateRequest)
+		err := client.Call(stubs.UpdateBroker, towork, brokerResponse)
+		if err != nil {
+			fmt.Println("RPC client returned error:")
+			fmt.Println(err)
+			fmt.Println("Dropping division.")
+		}
+		workerWorldChan <- brokerResponse.World
+		workerTurnChan <- brokerResponse.Turns
+	}
+}*/
+
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	fmt.Println("UpdateWorld called")
 	//receiveFromBroker(req.Turns, req.World)
@@ -198,15 +215,8 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	turn := 0
 	for t := 0; t < req.Turns; t++ {
 		fmt.Println("Loop iteration", t, "on worker", workerId)
-		/*if t != 0 {
-			fmt.Println("chan1")
-			turn = <-turnInternal
-			fmt.Println("chan2")
-			globalWorld = <-worldInternal
-			fmt.Println("chan3")
-		} else {
-			globalWorld = req.World
-		}*/
+		//globalWorld = <-workerWorldChan
+		//<-workerTurnChan
 		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 		turn++
 		for i := range newWorld {
@@ -231,26 +241,26 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 // kill := make(chan bool)
 
 func main() {
-	//pAddr := flag.String("port", "8050", "Port to listen on")
-	//brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
+	pAddr := flag.String("port", "8050", "Port to listen on")
+	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
-	//client, err := rpc.Dial("tcp", *brokerAddr)
-	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
+	client, err := rpc.Dial("tcp", *brokerAddr)
+	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
 		fmt.Println(err)
 	}
 	rpc.Register(&GolOperations{})
 	//fmt.Println(*pAddr)
-	//fmt.Println(getOutboundIP() + ":" + *pAddr)
-	//listenerr, err := net.Listen("tcp", ":"+*pAddr)
-	fmt.Println(getOutboundIP() + ":" + "8050")
-	listenerr, err := net.Listen("tcp", ":"+"8050")
+	fmt.Println(getOutboundIP() + ":" + *pAddr)
+	listenerr, err := net.Listen("tcp", ":"+*pAddr)
+	//fmt.Println(getOutboundIP() + ":" + "8050")
+	//listenerr, err := net.Listen("tcp", ":"+"8050")
 	if err != nil {
 		fmt.Println(err)
 	}
 	subscribe := stubs.SubscribeRequest{
-		//WorkerAddress: getOutboundIP() + ":" + *pAddr,
-		WorkerAddress: getOutboundIP() + ":" + "8050",
+		WorkerAddress: getOutboundIP() + ":" + *pAddr,
+		//WorkerAddress: getOutboundIP() + ":" + "8050",
 	}
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
@@ -264,6 +274,7 @@ func main() {
 	//client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	defer listenerr.Close()
 	go UpdateBroker2(turnChan, worldChan, client)
+	//go UpdateWorker2(client)
 	rpc.Accept(listenerr)
 
 }
