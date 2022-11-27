@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
+	"time"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
@@ -232,6 +233,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 		//turnInternal <- turn
 		//worldInternal <- globalWorld
 		fmt.Println(turn)
+		time.Sleep(2 * time.Second)
 	}
 	res.World = newWorld
 	res.TurnsDone = turn

@@ -257,12 +257,13 @@ func publish(req stubs.StateRequest) (err error) {
 }
 
 // Accepting every information about world progress and merging into a world.
-func mergeWorld() {
+func mergeWorld(mwworld [][]uint8) {
 
 	var newWorld [][]uint8
 	for _, w := range workers {
-		prevWorld := <-w.worldChannel
-		newWorld = append(newWorld, prevWorld.world...)
+		fmt.Println("mergeworld #", w.id)
+		prevWorld := mwworld
+		newWorld = append(newWorld, prevWorld...)
 	}
 
 	for i := range newWorld {
@@ -283,7 +284,7 @@ func updateBroker(ubturns int, ubworld [][]uint8) error {
 	}
 	completedTurns = ubturns
 	//fmt.Println("mergeWorld")
-	//mergeWorld()
+	mergeWorld(ubworld)
 	//return errors.New("Broker did not update.")
 	return nil
 }
