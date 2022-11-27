@@ -67,7 +67,6 @@ func updateWorld() {
 	}
 	//getReport()
 }
-
 // Server -> Broker
 func getReport() {
 	report := new(stubs.Response)

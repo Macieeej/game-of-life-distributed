@@ -167,6 +167,10 @@ func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusRe
 // 	Broker <- turn
 // }
 
+func progress() {
+
+}
+
 func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	for {
 		t := <-tchan
