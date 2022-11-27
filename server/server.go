@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
+
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
 )
@@ -35,6 +36,8 @@ var worldInternal chan [][]uint8
 var workerId int
 var globalWorld [][]uint8
 var completedTurns int
+
+var resume chan bool
 
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
@@ -196,6 +199,7 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	fmt.Println("UpdateWorld called")
+	fmt.Println("From:", req.Turns)
 	//receiveFromBroker(req.Turns, req.World)
 	// TODO: update world chans instead of global variables
 	globalWorld = req.World
@@ -216,6 +220,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 		fmt.Println("Loop iteration", t, "on worker", workerId)
 		//globalWorld = <-workerWorldChan
 		//<-workerTurnChan
+
 		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 		turn++
 		for i := range newWorld {
