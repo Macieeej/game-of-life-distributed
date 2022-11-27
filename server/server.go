@@ -38,6 +38,7 @@ var globalWorld [][]uint8
 var completedTurns int
 
 var resume chan bool
+var done chan bool
 
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
@@ -167,7 +168,7 @@ func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusRe
 // 	Broker <- turn
 // }
 
-func progress() {
+func process() {
 
 }
 
@@ -201,6 +202,10 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	}
 }*/
 
+func resumeWorker() {
+	done <- true
+}
+
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	fmt.Println("UpdateWorld called")
 	fmt.Println("From:", req.Turns)
@@ -209,6 +214,7 @@ func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusR
 	globalWorld = req.World
 	completedTurns = req.Turns
 	res.Status = 7
+	resumeWorker()
 	return
 }
 
@@ -224,7 +230,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 		fmt.Println("Loop iteration", t, "on worker", workerId)
 		//globalWorld = <-workerWorldChan
 		//<-workerTurnChan
-
+		<-done
 		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 		turn++
 		for i := range newWorld {
