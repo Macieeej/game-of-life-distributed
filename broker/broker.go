@@ -86,29 +86,39 @@ func subscribe_loop(w Worker) {
 	fmt.Println("Loooping")
 	response := new(stubs.Response)
 	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
-	err := w.worker.Go(stubs.ProcessTurnsHandler, workerReq, response, nil)
+	/*err := w.worker.Go(stubs.ProcessTurnsHandler, workerReq, response, nil)
 	//go handleWorkers()
 	if err != nil {
 		fmt.Println("Error calling ProcessTurnsHandler")
 		//fmt.Println(err)
 		fmt.Println("Closing subscriber thread.")
 		//worldChanS <- worldS
-	}
+	}*/
 	//time.Sleep(5 * time.Second)
-	for {
-		wt := <-w.worldChannel
-		updateResponse := new(stubs.StatusReport)
-		updateRequest := stubs.UpdateRequest{World: wt.world, Turns: wt.turns}
-		err := w.worker.Call(stubs.UpdateWorker, updateRequest, updateResponse)
-		if err != nil {
-			fmt.Println("Error calling UpdateWorker")
-			//fmt.Println(err)
-			fmt.Println("Closing subscriber thread.")
-			//Place the unfulfilled job back on the topic channel.
-			w.worldChannel <- wt
-			break
+	go func() {
+		for {
+			wt := <-w.worldChannel
+			updateResponse := new(stubs.StatusReport)
+			updateRequest := stubs.UpdateRequest{World: wt.world, Turns: wt.turns}
+			err := w.worker.Call(stubs.UpdateWorker, updateRequest, updateResponse)
+			if err != nil {
+				fmt.Println("Error calling UpdateWorker")
+				//fmt.Println(err)
+				fmt.Println("Closing subscriber thread.")
+				//Place the unfulfilled job back on the topic channel.
+				w.worldChannel <- wt
+				break
+			}
+			fmt.Println(updateResponse.Status)
 		}
-		fmt.Println(updateResponse.Status)
+	}()
+	err := w.worker.Call(stubs.ProcessTurnsHandler, workerReq, response)
+	//go handleWorkers()
+	if err != nil {
+		fmt.Println("Error calling ProcessTurnsHandler")
+		//fmt.Println(err)
+		fmt.Println("Closing subscriber thread.")
+		//worldChanS <- worldS
 	}
 	//fmt.Println("Worker done", response.TurnsDone, response.World)
 	/*for {
@@ -328,6 +338,11 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.StatusReport) (err error) {
 	err = registerDistributor(req, res)
+	for {
+		if completedTurns == p.Turns {
+			return
+		}
+	}
 	return
 }
 
