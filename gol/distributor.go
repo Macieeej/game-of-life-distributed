@@ -247,11 +247,11 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		Turns:       p.Turns,
 		ImageWidth:  p.ImageWidth,
 		ImageHeight: p.ImageHeight}
-	response := new(stubs.StatusReport)
+	response := new(stubs.Response)
 	client.Call(stubs.ConnectDistributor, request, response)
-	time.Sleep(10 * time.Second)
-	//world = response.World
-	//turn = response.TurnsDone
+	// time.Sleep(10 * time.Second)
+	world = response.World
+	turn = response.TurnsDone
 
 	/*for {
 		keypress := stubs.StateRequest{State: 5}

@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/rpc"
 	"sync"
+
 	"uk.ac.bris.cs/gameoflife/stubs"
 )
 
@@ -90,7 +91,7 @@ func subscribe_loop(w Worker) {
 	//go handleWorkers()
 	if err != nil {
 		fmt.Println("Error calling ProcessTurnsHandler")
-		//fmt.Println(err)
+		// fmt.Println(err)
 		fmt.Println("Closing subscriber thread.")
 		//worldChanS <- worldS
 	}
@@ -326,9 +327,15 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 	return
 }
 
-func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.StatusReport) (err error) {
-	err = registerDistributor(req, res)
-	return
+func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err error) {
+	err = registerDistributor(req, new(stubs.StatusReport))
+	for {
+		if p.Turns == completedTurns {
+			res.World = world
+			res.TurnsDone = completedTurns
+			return
+		}
+	}
 }
 
 func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err error) {
