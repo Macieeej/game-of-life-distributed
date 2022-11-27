@@ -284,17 +284,17 @@ func mergeWorld(mwworld [][]uint8) {
 func updateBroker(ubturns int, ubworld [][]uint8) error {
 	topicmx.RLock()
 	defer topicmx.RUnlock()
+	mergeWorld(ubworld)
 	for _, w := range workers {
 		fmt.Println("Sending update to worker #", w.id)
 		w.worldChannel <- World{
-			world: ubworld,
+			world: world,
 			turns: ubturns,
 		}
 		//fmt.Println("Turn update Broker:", ubturns)
 	}
 	completedTurns = ubturns
 	//fmt.Println("mergeWorld")
-	mergeWorld(ubworld)
 	//return errors.New("Broker did not update.")
 	return nil
 }

@@ -202,9 +202,10 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	}
 }*/
 
-func resumeWorker() {
-	done <- true
-}
+// func resumeWorker() {
+// 	done <- true
+// }
+var incr int
 
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	fmt.Println("UpdateWorld called")
@@ -214,7 +215,8 @@ func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusR
 	globalWorld = req.World
 	completedTurns = req.Turns
 	res.Status = 7
-	resumeWorker()
+	incr++
+	// <-done
 	return
 }
 
@@ -226,27 +228,34 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	globalWorld = req.World
 	pause = false
 	turn := 0
+	incr = 0
 	for t := 0; t < req.Turns; t++ {
-		fmt.Println("Loop iteration", t, "on worker", workerId)
-		//globalWorld = <-workerWorldChan
-		//<-workerTurnChan
-		<-done
-		newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
-		turn++
-		for i := range newWorld {
-			copy(globalWorld[i], newWorld[i])
+		if incr == t {
+			fmt.Println("Loop iteration", t, "on worker", workerId)
+			//globalWorld = <-workerWorldChan
+			//<-workerTurnChan
+			// resumeWorker()
+			// done <- true
+			newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
+			turn++
+			for i := range newWorld {
+				copy(globalWorld[i], newWorld[i])
+			}
+			//completedTurns = turn
+			fmt.Println("chan1")
+			//turn = <-turnInternal
+			turnChan <- turn
+			fmt.Println("chan2")
+			worldChan <- globalWorld
+			fmt.Println("chan3")
+			//turnInternal <- turn
+			//worldInternal <- globalWorld
+			fmt.Println(turn)
+			//time.Sleep(2 * time.Second)
+		} else {
+			t--
 		}
-		//completedTurns = turn
-		fmt.Println("chan1")
-		//turn = <-turnInternal
-		turnChan <- turn
-		fmt.Println("chan2")
-		worldChan <- globalWorld
-		fmt.Println("chan3")
-		//turnInternal <- turn
-		//worldInternal <- globalWorld
-		fmt.Println(turn)
-		//time.Sleep(2 * time.Second)
+
 	}
 	res.World = newWorld
 	res.TurnsDone = turn
