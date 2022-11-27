@@ -121,7 +121,7 @@ func subscribe_loop(w Worker) {
 		fmt.Println("Closing subscriber thread.")
 		//worldChanS <- worldS
 	}
-	//fmt.Println("Worker done", response.TurnsDone, response.World)
+	// return
 	/*for {
 		err := w.worker.Call(stubs.PauseHandler, workerReq, &response)
 		if err != nil {
@@ -339,6 +339,12 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err error) {
 	err = registerDistributor(req, new(stubs.StatusReport))
+	// Checks if the connection and the worker is still on
+	if len(workers) == p.Threads {
+		for _, w := range workers {
+			go subscribe_loop(w)
+		}
+	}
 	for {
 		if p.Turns == completedTurns {
 			res.World = world
