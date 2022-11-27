@@ -249,7 +249,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		ImageHeight: p.ImageHeight}
 	response := new(stubs.Response)
 	client.Call(stubs.ConnectDistributor, request, response)
-	// time.Sleep(10 * time.Second)
+	//time.Sleep(4 * time.Second)
 	world = response.World
 	turn = response.TurnsDone
 

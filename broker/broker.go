@@ -121,6 +121,7 @@ func subscribe_loop(w Worker) {
 		fmt.Println("Closing subscriber thread.")
 		//worldChanS <- worldS
 	}
+
 	//fmt.Println("Worker done", response.TurnsDone, response.World)
 	/*for {
 		err := w.worker.Call(stubs.PauseHandler, workerReq, &response)
