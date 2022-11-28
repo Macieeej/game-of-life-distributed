@@ -115,7 +115,6 @@ func subscribe(workerAddress string) (err error) {
 				EndY:   p.ImageHeight,
 			},
 		}
-		go merging()
 	}
 	workers = append(workers, newWorker)
 	nextId++
@@ -158,10 +157,10 @@ func makeChannel(threads int) {
 	topicmx.Lock()
 	defer topicmx.Unlock()
 	worldChan = make([]chan World, threads)
-	worldCommunication = make([]chan [][]uint8, threads)
+
 	for i := range worldChan {
 		worldChan[i] = make(chan World)
-		worldCommunication[i] = make(chan [][]uint8)
+
 		fmt.Println("Created channel #", i)
 	}
 }
@@ -182,48 +181,42 @@ func makeChannel(threads int) {
 // 	}
 // }
 
-var iterate bool = false
+var incr int = 0
 
-func merging() {
-	for {
-		var worldFragment [][]uint8
-		for _, ch := range worldCommunication {
-			wr := <-ch
-			worldFragment = append(worldFragment, wr...)
-		}
-		for i := range worldFragment {
-			copy(world[i], worldFragment[i])
-		}
-		iterate = true
+func merge(ubworldSlice [][]uint8, w Worker) {
+	for i := range ubworldSlice {
+		copy(world[w.params.StartY+i], ubworldSlice[i])
 	}
+	// return
 }
 
-var incr int = 0
-var worldCommunication []chan [][]uint8
+func matchWorker(id int) Worker {
+	for _, w := range workers {
+		if w.id == id {
+			return w
+		}
+	}
+	panic("No such worker")
+}
 
 func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
 	topicmx.RLock()
 	defer topicmx.RUnlock()
-	// mergeWorld(ubworldSlice)
-	worldCommunication[workerId] <- ubworldSlice
+	merge(ubworldSlice, matchWorker(workerId))
+	// worldCommunication[workerId] <- ubworldSlice
 	incr++
 	if incr == p.Threads {
-		for {
-			if iterate == true {
-				for _, w := range workers {
-					fmt.Println("Sending update to worker #", w.id)
-					w.worldChannel <- World{
-						world: world,
-						turns: ubturns,
-					}
-					//fmt.Println("Turn update Broker:", ubturns)
-				}
-				completedTurns = ubturns
-				incr = 0
-				iterate = false
-				break
+		for _, w := range workers {
+			fmt.Println("Sending update to worker #", w.id)
+			w.worldChannel <- World{
+				world: world,
+				turns: ubturns,
 			}
+			//fmt.Println("Turn update Broker:", ubturns)
 		}
+		completedTurns = ubturns
+		incr = 0
+
 	}
 	//fmt.Println("mergeWorld")
 	//return errors.New("Broker did not update.")
@@ -273,18 +266,14 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 	if len(workers) == p.Threads {
 		for _, w := range workers {
 			startGame := make(chan bool)
-			go func() {
-				for {
-					if p.Threads == len(workers) {
-						startGame <- true
-					}
-				}
-			}()
 			w.params = WorkerParams{StartX: 0,
 				StartY: 0,
 				EndX:   p.ImageWidth,
 				EndY:   p.ImageHeight}
 			go subscribe_loop(w, startGame)
+			go func() {
+				startGame <- true
+			}()
 		}
 	}
 	for {
