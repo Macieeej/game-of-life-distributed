@@ -35,7 +35,7 @@ var worldInternal chan [][]uint8
 var workerId int
 var globalWorld [][]uint8
 var completedTurns int
-
+var incr int
 var resume chan bool
 var done chan bool
 
@@ -101,50 +101,10 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	return newWorld, flipCell
 }
 
-func receive() {
-	for {
-		t := <-turnChan
-		fmt.Println("assigned t with turnChan")
-		world := <-worldChan
-		fmt.Println("assigned world with worldChan")
-		turnInternal <- t
-		fmt.Println("assigned turnInternal with t")
-		worldInternal <- world
-		fmt.Println("assigned worldInternal with world")
-	}
-}
-
-func send() {
-	for {
-		t := <-turnInternal
-		world := <-worldInternal
-		turnChan <- t
-		worldChan <- world
-	}
-}
-
-func receiveFromBroker(t int, world [][]uint8) {
-	turnChan <- t
-	fmt.Println("assigned turnChan with t")
-	worldChan <- world
-	fmt.Println("assigned worldChan with world")
-}
-
-func sendToBroker() (int, [][]uint8) {
-	turn := <-turnChan
-	world := <-worldChan
-	return turn, world
-}
-
 type GolOperations struct{}
 
 func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
 	//res.TurnsDone, res.World = sendToBroker()
-	return
-}
-func (s *GolOperations) UpdateWorld(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
-	fmt.Println("UpdateWorld called")
-	receiveFromBroker(req.Turns, req.World)
 	return
 }
 
@@ -185,26 +145,6 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 		}
 	}
 }
-
-/*func UpdateWorker2(client *rpc.Client) {
-	for {
-		towork := stubs.TickerRequest{}
-		brokerResponse := new(stubs.UpdateRequest)
-		err := client.Call(stubs.UpdateBroker, towork, brokerResponse)
-		if err != nil {
-			fmt.Println("RPC client returned error:")
-			fmt.Println(err)
-			fmt.Println("Dropping division.")
-		}
-		workerWorldChan <- brokerResponse.World
-		workerTurnChan <- brokerResponse.Turns
-	}
-}*/
-
-// func resumeWorker() {
-// 	done <- true
-// }
-var incr int
 
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	fmt.Println("UpdateWorld called")

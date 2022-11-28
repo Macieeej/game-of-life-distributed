@@ -49,52 +49,12 @@ var p stubs.Params
 var world [][]uint8
 var completedTurns int
 
-// Handing out the world again to the worker.
-/*func handleWorkers() {
-	for {
-		updateWorld()
-		getReport()
-		mergeWorld()
-	}
-}*/
-
-/*// Broker -> Server
-func updateWorld() {
-	for _, w := range workers {
-		fmt.Println("Updating world")
-		w.worker.Call(stubs.UpdateWorld, stubs.UpdateRequest{World: world, Turns: completedTurns}, new(stubs.StatusReport))
-		fmt.Println("Updated world")
-	}
-	//getReport()
-}
-// Server -> Broker
-func getReport() {
-	report := new(stubs.Response)
-	for _, w := range workers {
-		w.worker.Call(stubs.Report, stubs.ActionRequest{Action: stubs.NoAction}, report)
-		completedTurns = report.TurnsDone
-		w.worldChannel <- World{
-			world: report.World,
-			turns: report.TurnsDone,
-		}
-	}
-	//updateWorld()
-}*/
-
 // Connect the worker in a loop
 func subscribe_loop(w Worker) {
 	fmt.Println("Loooping")
 	response := new(stubs.Response)
 	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
-	/*err := w.worker.Go(stubs.ProcessTurnsHandler, workerReq, response, nil)
-	//go handleWorkers()
-	if err != nil {
-		fmt.Println("Error calling ProcessTurnsHandler")
-		// fmt.Println(err)
-		fmt.Println("Closing subscriber thread.")
-		//worldChanS <- worldS
-	}*/
-	//time.Sleep(5 * time.Second)
+
 	go func() {
 		for {
 			wt := <-w.worldChannel
@@ -120,14 +80,6 @@ func subscribe_loop(w Worker) {
 		fmt.Println("Closing subscriber thread.")
 		//worldChanS <- worldS
 	}
-	// return
-	/*for {
-		err := w.worker.Call(stubs.PauseHandler, workerReq, &response)
-		if err != nil {
-			fmt.Println("Error: ", err)
-			break
-		}
-	}*/
 }
 
 // Initialise connecting worker, and if no error occurs, invoke register_loop.
@@ -175,36 +127,9 @@ func subscribe(workerAddress string) (err error) {
 		fmt.Println(err)
 		return err
 	}
-	/*if p.Threads == 1 && err == nil {
-		go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, worldChan[0], req.Turns, worker)
-	} else if err == nil {
-		if len(workers) != p.Threads-1 {
-			unit := int(p.ImageHeight / p.Threads)
-			for i := 0; i < p.Threads; i++ {
-				worldChan[i] = make(chan [][]uint8)
-				if i == p.Threads-1 {
-					go subscribe_loop(i*unit, p.ImageHeight, 0, p.ImageWidth, world, workers[i].worldChannel, completedTurns, workers[i])
-				} else {
-					go subscribe_loop(i*unit, (i+1)*unit, 0, p.ImageWidth, world, workers[i].worldChannel, completedTurns, workers[i])
-				}
-			}
-			go handleWorkers(unit)
-		} else {
-			return
-		}
-	} else {
-		fmt.Println(err)
-		return err
-	}*/
-
-	//nextId++
 
 	return
 }
-
-// func register_loop() {
-
-// }
 
 // Make an connection with the Distributor
 // And initialise the params.
@@ -216,33 +141,8 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.Threads = req.Threads
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
-	//unit = p.Threads / p.ImageWidth
 	unit = int(p.ImageHeight / p.Threads)
 	completedTurns = 0
-	// DONE: Make a channel for the world
-	// if p.Threads == 1 && err == nil {
-	// 	//go subscribe_loop(0, p.ImageHeight, 0, p.ImageWidth, world, worldChan[0], req.Turns, worker)
-	// 	worldChan[0] <- World{world: world, turns: req.Turns}
-	// 	fmt.Println("Created channel #", 0)
-	// } else if err == nil {
-	// 	if len(workers) != p.Threads-1 {
-
-	// 		for i := 0; i < p.Threads; i++ {
-	// 			//worldChan[i] = make(chan [][]uint8)
-	// 			if i == p.Threads-1 {
-
-	// 				worldChan[i] <- World{world: world, turns: req.Turns}
-	// 				fmt.Println("Assigned world slice to the worldChan #", i)
-	// 			} else {
-	// 				worldChan[i] <- World{world: world, turns: req.Turns}
-	// 				fmt.Println("Assigned world slice to the worldChan #", i)
-	// 			}
-	// 		}
-	// 	} else {
-	// 		return
-	// 	}
-
-	// }
 	return err
 }
 
@@ -254,17 +154,6 @@ func makeChannel(threads int) {
 		worldChan[i] = make(chan World)
 		fmt.Println("Created channel #", i)
 	}
-}
-
-func publish(req stubs.StateRequest) (err error) {
-	/*topicmx.RLock()
-	defer topicmx.RUnlock()
-	if ch, ok := topics[topic]; ok {
-		ch <- pair
-	} else {
-		return errors.New("No such topic.")
-	}*/
-	return
 }
 
 // Accepting every information about world progress and merging into a world.
