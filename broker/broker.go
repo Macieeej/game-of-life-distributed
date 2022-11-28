@@ -216,7 +216,8 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.Threads = req.Threads
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
-	unit = p.Threads / p.ImageWidth
+	//unit = p.Threads / p.ImageWidth
+	unit = int(p.ImageHeight / p.Threads)
 	completedTurns = 0
 	// DONE: Make a channel for the world
 	// if p.Threads == 1 && err == nil {
