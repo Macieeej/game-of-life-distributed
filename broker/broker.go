@@ -50,11 +50,11 @@ var world [][]uint8
 var completedTurns int
 
 // Connect the worker in a loop
-func subscribe_loop(w Worker) {
+func subscribe_loop(w Worker, startGame chan bool) {
 	fmt.Println("Loooping")
 	response := new(stubs.Response)
 	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
-
+	<-startGame
 	go func() {
 		for {
 			wt := <-w.worldChannel
@@ -118,10 +118,17 @@ func subscribe(workerAddress string) (err error) {
 	}
 	workers = append(workers, newWorker)
 	nextId++
-
+	startGame := make(chan bool)
+	go func() {
+		for {
+			if p.Threads == len(workers) {
+				startGame <- true
+			}
+		}
+	}()
 	if err == nil {
 		fmt.Println("Looooop")
-		go subscribe_loop(newWorker)
+		go subscribe_loop(newWorker, startGame)
 	} else {
 		fmt.Println("Error subscribing ", workerAddress)
 		fmt.Println(err)
@@ -232,11 +239,19 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 	// Checks if the connection and the worker is still on
 	if len(workers) == p.Threads {
 		for _, w := range workers {
+			startGame := make(chan bool)
+			go func() {
+				for {
+					if p.Threads == len(workers) {
+						startGame <- true
+					}
+				}
+			}()
 			w.params = WorkerParams{StartX: 0,
 				StartY: 0,
 				EndX:   p.ImageWidth,
 				EndY:   p.ImageHeight}
-			go subscribe_loop(w)
+			go subscribe_loop(w, startGame)
 		}
 	}
 	for {
