@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
+
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
 )
@@ -33,6 +34,7 @@ var turnInternal chan int
 var worldInternal chan [][]uint8
 
 var workerId int
+var nextAddr string
 var globalWorld [][]uint8
 var completedTurns int
 var incr int
@@ -135,7 +137,7 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	for {
 		t := <-tchan
 		w := <-wchan
-		towork := stubs.UpdateRequest{Turns: t, World: w}
+		towork := stubs.UpdateRequest{Turns: t, World: w, WorkerId: workerId}
 		status := new(stubs.StatusReport)
 		err := client.Call(stubs.UpdateBroker, towork, status)
 		if err != nil {

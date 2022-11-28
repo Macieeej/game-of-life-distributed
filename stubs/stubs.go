@@ -81,8 +81,9 @@ type RegisterRequest struct {
 }
 
 type UpdateRequest struct {
-	World [][]uint8
-	Turns int
+	World    [][]uint8
+	Turns    int
+	WorkerId int
 }
 
 type ActionRequest struct {
