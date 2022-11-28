@@ -136,8 +136,8 @@ func process() {
 func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	for {
 		t := <-tchan
-		w := <-wchan
-		towork := stubs.UpdateRequest{Turns: t, World: w, WorkerId: workerId}
+		ws := <-wchan
+		towork := stubs.UpdateRequest{Turns: t, World: ws, WorkerId: workerId}
 		status := new(stubs.StatusReport)
 		err := client.Call(stubs.UpdateBroker, towork, status)
 		if err != nil {
@@ -165,12 +165,12 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 
 	fmt.Println("Processing")
 	workerId = req.WorkerId
-	var newWorld [][]uint8
+	var newWorldSlice [][]uint8
 	globalWorld = req.World
 	// New stuff
-	for j := range req.World {
-		copy(globalWorld[j], req.World[j])
-	}
+	// for j := range req.World {
+	// 	copy(globalWorld[j], req.World[j])
+	// }
 	pause = false
 	turn := 0
 	incr = 0
@@ -181,17 +181,17 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 			//<-workerTurnChan
 			// resumeWorker()
 			// done <- true
-			newWorld, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
+			newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 			turn++
-			for i := range newWorld {
-				copy(globalWorld[i], newWorld[i])
+			for i := range newWorldSlice {
+				copy(globalWorld[i], newWorldSlice[i])
 			}
 			//completedTurns = turn
 			fmt.Println("chan1")
 			//turn = <-turnInternal
 			turnChan <- turn
 			fmt.Println("chan2")
-			worldChan <- globalWorld
+			worldChan <- newWorldSlice
 			fmt.Println("chan3")
 			//turnInternal <- turn
 			//worldInternal <- globalWorld
@@ -203,7 +203,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 
 	}
 	//time.Sleep(2 * time.Second)
-	res.World = newWorld
+	res.World = newWorldSlice
 	res.TurnsDone = turn
 	return
 }

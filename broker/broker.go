@@ -182,6 +182,8 @@ func makeChannel(threads int) {
 // 	}
 // }
 
+var iterate bool = false
+
 func merging() {
 	for {
 		var worldFragment [][]uint8
@@ -189,7 +191,7 @@ func merging() {
 			wr := <-ch
 			worldFragment = append(worldFragment, wr...)
 		}
-		for i := range world {
+		for i := range worldFragment {
 			copy(world[i], worldFragment[i])
 		}
 		iterate = true
@@ -198,13 +200,12 @@ func merging() {
 
 var incr int = 0
 var worldCommunication []chan [][]uint8
-var iterate bool = false
 
-func updateBroker(ubturns int, ubworld [][]uint8, workerId int) error {
+func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
 	topicmx.RLock()
 	defer topicmx.RUnlock()
-	// mergeWorld(ubworld)
-	worldCommunication[workerId] <- ubworld
+	// mergeWorld(ubworldSlice)
+	worldCommunication[workerId] <- ubworldSlice
 	incr++
 	if incr == p.Threads {
 		for {
