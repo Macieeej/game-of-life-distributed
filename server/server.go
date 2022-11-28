@@ -225,6 +225,10 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	workerId = req.WorkerId
 	var newWorld [][]uint8
 	globalWorld = req.World
+	// New stuff
+	for j := range req.World {
+		copy(globalWorld[j], req.World[j])
+	}
 	pause = false
 	turn := 0
 	incr = 0

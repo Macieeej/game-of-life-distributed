@@ -271,6 +271,7 @@ func publish(req stubs.StateRequest) (err error) {
 func mergeWorld(mwworld [][]uint8) {
 
 	var newWorld [][]uint8
+
 	for _, w := range workers {
 		fmt.Println("mergeworld #", w.id)
 		prevWorld := mwworld
@@ -342,6 +343,10 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 	// Checks if the connection and the worker is still on
 	if len(workers) == p.Threads {
 		for _, w := range workers {
+			w.params = WorkerParams{StartX: 0,
+				StartY: 0,
+				EndX:   p.ImageWidth,
+				EndY:   p.ImageHeight}
 			go subscribe_loop(w)
 		}
 	}
