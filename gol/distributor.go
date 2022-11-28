@@ -191,16 +191,26 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 					world = response.World
 					turn = response.TurnsDone
 					fmt.Println("ticker")
-					aliveCount, _ := calculateAliveCells(p, world)
-					aliveReport := AliveCellsCount{
-						CompletedTurns: turn,
-						CellsCount:     aliveCount,
+					if turn == 0 {
+						aliveReport := AliveCellsCount{
+							CompletedTurns: turn,
+							CellsCount:     0,
+						}
+						c.events <- aliveReport
+					} else {
+						aliveCount, _ := calculateAliveCells(p, world)
+						aliveReport := AliveCellsCount{
+							CompletedTurns: turn,
+							CellsCount:     aliveCount,
+						}
+						c.events <- aliveReport
 					}
+
 					//fmt.Println("At turn", turn, "there are", aliveCount, "alive cells")
 					/*c.events <- TurnComplete{
 						CompletedTurns: turn,
 					}*/
-					c.events <- aliveReport
+					//c.events <- aliveReport
 				}
 			} else {
 				return
