@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
+	"os"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
@@ -19,7 +20,8 @@ return string(runes)
 }*/
 
 var listener net.Listener
-var pause bool
+var pause bool = false
+var kill bool = false
 var waitToUnpause chan bool
 
 // updateBroker
@@ -110,29 +112,6 @@ func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (er
 	return
 }
 
-// func (s *GolOperations) ListenToQuit(req stubs.KillRequest, res *stubs.Response) (err error) {
-// 	listener.Close()
-// 	os.Exit(0)
-// 	return
-// }
-
-// func (s *GolOperations) ListenToPause(req stubs.PauseRequest, res *stubs.Response) (err error) {
-// 	pause = req.Pause
-// 	if !pause {
-// 		waitToUnpause <- true
-// 	}
-// 	return
-// }
-
-// func communicateBroker(t chan int) {
-// 	turn := <-t
-// 	Broker <- turn
-// }
-
-func process() {
-
-}
-
 func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	for {
 		t := <-tchan
@@ -146,6 +125,38 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 			fmt.Println("Dropping division.")
 		}
 	}
+}
+
+func killWorker() {
+	listener.Close()
+	os.Exit(0)
+}
+
+func waitUnpause() {
+	//waitToUnpause <- true
+}
+
+func (s *GolOperations) Action(req stubs.StateRequest, res *stubs.StatusReport) (err error) {
+	switch req.State {
+	case stubs.Pause:
+		pause = true
+	case stubs.UnPause:
+		pause = false
+		//waitUnpause()
+	}
+	return nil
+}
+
+func (s *GolOperations) ActionWithReport(req stubs.StateRequest, res *stubs.StatusReport) (err error) {
+	switch req.State {
+	case stubs.Quit:
+		pause = true
+	case stubs.Save:
+	case stubs.Kill:
+		kill = true
+		defer os.Exit(0)
+	}
+	return nil
 }
 
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
@@ -162,44 +173,45 @@ func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusR
 }
 
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
-
 	fmt.Println("Processing")
 	workerId = req.WorkerId
 	var newWorldSlice [][]uint8
 	globalWorld = req.World
-	// New stuff
-	// for j := range req.World {
-	// 	copy(globalWorld[j], req.World[j])
-	// }
-	pause = false
 	turn := 0
 	incr = 0
 	for t := 0; t < req.Turns; t++ {
-		if incr == t {
-			fmt.Println("Loop iteration", t, "on worker", workerId)
-			//globalWorld = <-workerWorldChan
-			//<-workerTurnChan
-			// resumeWorker()
-			// done <- true
-			newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
-			turn++
-			//completedTurns = turn
-			fmt.Println("chan1")
-			//turn = <-turnInternal
-			turnChan <- turn
-			fmt.Println("chan2")
-			worldChan <- newWorldSlice
-			fmt.Println("chan3")
-			//turnInternal <- turn
-			//worldInternal <- globalWorld
-			fmt.Println(turn)
-			//time.Sleep(2 * time.Second)
+		if incr == t && !pause {
+			//if pause {
+			//	<-waitToUnpause
+			//}
+			if !pause && !kill {
+				fmt.Println("Loop iteration", t, "on worker", workerId)
+				newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
+				turn++
+				//completedTurns = turn
+				fmt.Println("chan1")
+				//turn = <-turnInternal
+				turnChan <- turn
+				fmt.Println("chan2")
+				worldChan <- newWorldSlice
+				fmt.Println("chan3")
+				//turnInternal <- turn
+				//worldInternal <- globalWorld
+				fmt.Println(turn)
+				//time.Sleep(2 * time.Second)
+			} else {
+				if kill {
+					break
+				} else {
+					continue
+				}
+			}
 		} else {
 			t--
 		}
 
+		//time.Sleep(2 * time.Second)
 	}
-	//time.Sleep(2 * time.Second)
 	res.World = newWorldSlice
 	res.TurnsDone = turn
 	return
@@ -233,6 +245,7 @@ func main() {
 	turnInternal = make(chan int)
 	worldChan = make(chan [][]uint8)
 	worldInternal = make(chan [][]uint8)
+	waitToUnpause = make(chan bool)
 
 	//go receive()
 	//go send()
