@@ -183,9 +183,6 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 			// done <- true
 			newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 			turn++
-			for i := range newWorldSlice {
-				copy(globalWorld[i], newWorldSlice[i])
-			}
 			//completedTurns = turn
 			fmt.Println("chan1")
 			//turn = <-turnInternal

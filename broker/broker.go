@@ -185,6 +185,7 @@ var incr int = 0
 
 func merge(ubworldSlice [][]uint8, w Worker) {
 	for i := range ubworldSlice {
+		fmt.Println("merge slice on:", w.params.StartY+i)
 		copy(world[w.params.StartY+i], ubworldSlice[i])
 	}
 	// return
