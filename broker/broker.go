@@ -98,7 +98,7 @@ func subscribe(workerAddress string) (err error) {
 				StartX: 0,
 				StartY: nextId * unit,
 				EndX:   p.ImageWidth,
-				EndY:   nextId * (unit + 1),
+				EndY:   (nextId + 1) * (unit),
 			},
 		}
 	} else {
@@ -150,6 +150,7 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.ImageWidth = req.ImageWidth
 	unit = int(p.ImageHeight / p.Threads)
 	completedTurns = 0
+	worldChanWhat = make([]chan [][]uint8, p.Threads)
 	return err
 }
 
@@ -200,13 +201,27 @@ func matchWorker(id int) Worker {
 	panic("No such worker")
 }
 
+var worldChanWhat []chan [][]uint8
+
 func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
-	topicmx.RLock()
-	defer topicmx.RUnlock()
+	topicmx.Lock()
+	defer topicmx.Unlock()
+	fmt.Println("Call merge func for worker:", workerId)
+	//worldChanWhat[workerId] <- ubworldSlice
 	merge(ubworldSlice, matchWorker(workerId))
 	// worldCommunication[workerId] <- ubworldSlice
 	incr++
 	if incr == p.Threads {
+		/*var worldFragment [][]uint8
+		for i := 0; i < p.Threads; i++ {
+			worldPart := <-worldChanWhat[i]
+			worldFragment = append(worldFragment, worldPart...)
+			// cellPart := <-flipChan[i]
+			// cellFlip = append(cellFlip, cellPart...)
+		}
+		for j := range worldFragment {
+			copy(world[j], worldFragment[j])
+		}*/
 		for _, w := range workers {
 			fmt.Println("Sending update to worker #", w.id)
 			w.worldChannel <- World{
@@ -273,7 +288,7 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 					StartX: 0,
 					StartY: w.id * unit,
 					EndX:   p.ImageWidth,
-					EndY:   w.id * (unit + 1),
+					EndY:   (w.id + 1) * (unit),
 				}
 			} else {
 				w.params = WorkerParams{
@@ -299,7 +314,7 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 				StartX: 0,
 				StartY: w.id * unit,
 				EndX:   p.ImageWidth,
-				EndY:   w.id * (unit + 1),
+				EndY:   (w.id + 1) * (unit),
 			}
 			startGame := make(chan bool)
 			go subscribe_loop(w, startGame)
