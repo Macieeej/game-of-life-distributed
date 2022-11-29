@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
+	"os"
 	"sync"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
@@ -242,6 +243,14 @@ func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
 	return nil
 }
 
+func closeBroker() {
+	for _, w := range workers {
+		w.worker.Close()
+	}
+	defer os.Exit(0)
+	return
+}
+
 type Broker struct{}
 
 // func (b *Broker) ReportStatus(req stubs.StateRequest, req *stubs.Response) (err error) {
@@ -265,8 +274,8 @@ func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) 
 }
 
 /*func (b *Broker) MakeChannelFromWorker(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
-	makeChannel(req.Threads)
-	return
+makeChannel(req.Threads)
+return
 }*/
 
 // Calls and connects to the worker (Subscribe)
@@ -352,8 +361,25 @@ func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err erro
 	return err
 }
 
-func (b *Broker) Pause(req stubs.PauseRequest, res *stubs.StatusReport) (err error) {
-	return
+func (b *Broker) Action(req stubs.StateRequest, res *stubs.StatusReport) (err error) {
+	for _, w := range workers {
+		w.worker.Call(stubs.ActionHandlerWorker, stubs.StateRequest{State: req.State}, res)
+	}
+	return nil
+}
+
+func (b *Broker) ActionWithReport(req stubs.StateRequest, res *stubs.Response) (err error) {
+	for _, w := range workers {
+		w.worker.Call(stubs.ActionReportWorker, req, new(stubs.StatusReport))
+	}
+
+	res.TurnsDone = completedTurns
+	res.World = world
+	if req.State == stubs.Kill {
+		go closeBroker()
+	}
+
+	return nil
 }
 
 func main() {

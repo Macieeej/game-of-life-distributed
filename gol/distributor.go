@@ -232,22 +232,25 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 				switch command {
 				case stubs.Pause:
 					turnChan <- turn
-					client.Call(stubs.PauseHandler, stubs.StateRequest{State: stubs.Pause}, new(stubs.StatusReport))
+					client.Call(stubs.ActionHandler, stubs.StateRequest{State: stubs.Pause}, new(stubs.StatusReport))
 				case stubs.UnPause:
 					turnChan <- turn
-					client.Call(stubs.PauseHandler, stubs.StateRequest{State: stubs.UnPause}, new(stubs.StatusReport))
+					client.Call(stubs.ActionHandler, stubs.StateRequest{State: stubs.UnPause}, new(stubs.StatusReport))
 				case stubs.Quit:
-					worldChan <- world
-					turnChan <- turn
-					client.Call(stubs.PauseHandler, stubs.StateRequest{State: stubs.Quit}, new(stubs.Response))
+					res := new(stubs.Response)
+					client.Call(stubs.ActionReport, stubs.StateRequest{State: stubs.Quit}, res)
+					worldChan <- res.World
+					turnChan <- res.TurnsDone
 				case stubs.Save:
-					worldChan <- world
-					turnChan <- turn
-					client.Call(stubs.PauseHandler, stubs.StateRequest{State: stubs.Save}, new(stubs.Response))
+					res := new(stubs.Response)
+					client.Call(stubs.ActionReport, stubs.StateRequest{State: stubs.Save}, res)
+					worldChan <- res.World
+					turnChan <- res.TurnsDone
 				case stubs.Kill:
+					res := new(stubs.Response)
+					client.Go(stubs.ActionReport, stubs.StateRequest{State: stubs.Kill}, res, nil)
 					worldChan <- world
 					turnChan <- turn
-					//client.Go(stubs.KillingHandler, stubs.KillRequest{Kill: 0}, new(stubs.Response), nil)
 				}
 			}
 		}
