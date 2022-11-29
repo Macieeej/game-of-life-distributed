@@ -292,9 +292,21 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 				startGame <- true
 			}()
 		}
-	} //else if len(workers) < p.Threads {
-
-	//}
+	} else if len(workers) < p.Threads {
+		for _, w := range workers {
+			w.params = WorkerParams{
+				StartX: 0,
+				StartY: w.id * unit,
+				EndX:   p.ImageWidth,
+				EndY:   w.id * (unit + 1),
+			}
+			startGame := make(chan bool)
+			go subscribe_loop(w, startGame)
+			go func() {
+				startGame <- true
+			}()
+		}
+	}
 	for {
 		if p.Turns == completedTurns {
 			res.World = world
