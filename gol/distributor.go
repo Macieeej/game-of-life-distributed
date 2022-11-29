@@ -203,13 +203,14 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 							CompletedTurns: turn,
 							CellsCount:     aliveCount,
 						}
+						c.events <- TurnComplete{
+							CompletedTurns: turn,
+						}
 						c.events <- aliveReport
 					}
 
 					//fmt.Println("At turn", turn, "there are", aliveCount, "alive cells")
-					/*c.events <- TurnComplete{
-						CompletedTurns: turn,
-					}*/
+
 					//c.events <- aliveReport
 				}
 			} else {

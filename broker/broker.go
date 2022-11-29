@@ -150,7 +150,7 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.ImageWidth = req.ImageWidth
 	unit = int(p.ImageHeight / p.Threads)
 	completedTurns = 0
-	worldChanWhat = make([]chan [][]uint8, p.Threads)
+	//worldChanWhat = make([]chan [][]uint8, p.Threads)
 	return err
 }
 
@@ -186,9 +186,11 @@ var incr int = 0
 
 func merge(ubworldSlice [][]uint8, w Worker) {
 	for i := range ubworldSlice {
-		fmt.Println("merge slice on:", w.params.StartY+i)
+		//fmt.Println("merge slice on:", w.params.StartY+i)
 		copy(world[w.params.StartY+i], ubworldSlice[i])
 	}
+	incr++
+
 	// return
 }
 
@@ -210,7 +212,7 @@ func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
 	//worldChanWhat[workerId] <- ubworldSlice
 	merge(ubworldSlice, matchWorker(workerId))
 	// worldCommunication[workerId] <- ubworldSlice
-	incr++
+
 	if incr == p.Threads {
 		/*var worldFragment [][]uint8
 		for i := 0; i < p.Threads; i++ {
@@ -229,9 +231,10 @@ func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
 				turns: ubturns,
 			}
 			//fmt.Println("Turn update Broker:", ubturns)
+			incr--
 		}
 		completedTurns = ubturns
-		incr = 0
+		//incr = 0
 
 	}
 	//fmt.Println("mergeWorld")
@@ -280,9 +283,12 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 	err = registerDistributor(req, new(stubs.StatusReport))
 	// Checks if the connection and the worker is still on
 	if len(workers) == p.Threads {
+		//unit = int(req.ImageHeight / req.Threads)
 		for _, w := range workers {
 			startGame := make(chan bool)
-
+			fmt.Println("Unit = ", unit)
+			fmt.Println("wid = ", w.id)
+			fmt.Println("widXunit = ", w.id*unit)
 			if w.id != p.Threads-1 {
 				w.params = WorkerParams{
 					StartX: 0,
@@ -333,8 +339,15 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 }
 
 func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err error) {
-	res.World = world
-	res.TurnsDone = completedTurns
+	// loop and condition added to make sure that world variable is updated before publishing
+	for {
+		if incr == 0 {
+			res.World = world
+			res.TurnsDone = completedTurns
+			break
+		}
+	}
+
 	//err = publish(stubs.StateRequest{State: req.State})
 	return err
 }
