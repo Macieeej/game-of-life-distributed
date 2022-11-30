@@ -204,6 +204,10 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 // kill := make(chan bool)
 
 func main() {
+	fmt.Println("remote")
+	fmt.Println(getOutboundIP() + ":")
+	fmt.Println("local")
+	fmt.Println(getIP() + ":")
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	// pIp := flag.String("ip", "127.0.0.1", "Port to listen on")
 	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
@@ -215,10 +219,7 @@ func main() {
 	}
 	rpc.Register(&GolOperations{})
 	//fmt.Println(*pAddr)
-	fmt.Println("remote")
-	fmt.Println(getOutboundIP() + ":" + *pAddr)
-	fmt.Println("local")
-	fmt.Println(getIP() + ":" + *pAddr)
+
 	listenerr, err := net.Listen("tcp", ":"+*pAddr)
 	//fmt.Println(getOutboundIP() + ":" + "8050")
 	//listenerr, err := net.Listen("tcp", ":"+"8050")
