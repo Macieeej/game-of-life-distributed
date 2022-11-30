@@ -206,6 +206,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 
 func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
+	pIp := flag.String("ip", "127.0.0.1:8050", "IP to listen on")
 	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
 	client, err := rpc.Dial("tcp", *brokerAddr)
@@ -215,7 +216,7 @@ func main() {
 	}
 	rpc.Register(&GolOperations{})
 	//fmt.Println(*pAddr)
-	fmt.Println(getOutboundIP() + ":" + *pAddr)
+	// fmt.Println(getOutboundIP() + ":" + *pAddr)
 	listenerr, err := net.Listen("tcp", ":"+*pAddr)
 	//fmt.Println(getOutboundIP() + ":" + "8050")
 	//listenerr, err := net.Listen("tcp", ":"+"8050")
@@ -223,13 +224,14 @@ func main() {
 		fmt.Println(err)
 	}
 	subscribe := stubs.SubscribeRequest{
-		WorkerAddress: getOutboundIP() + ":" + *pAddr,
+		WorkerAddress: *pIp,
 		//WorkerAddress: getOutboundIP() + ":" + "8050",
 	}
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
 	worldChan = make(chan [][]uint8)
 	worldInternal = make(chan [][]uint8)
+
 	waitToUnpause = make(chan bool)
 
 	//go receive()
