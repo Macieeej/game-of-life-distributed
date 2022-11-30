@@ -66,7 +66,7 @@ func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, wor
 				fmt.Println(newState.String())
 				c.events <- newState
 			} else {
-				action <- stubs.UnPause
+				action <- stubs.Pause
 				turn := <-t
 				paused = true
 				newState := StateChange{CompletedTurns: turn, NewState: State(Paused)}
@@ -138,11 +138,6 @@ func handleOutput(p Params, c distributorChannels, world [][]uint8, t int) {
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 
-	// brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
-	// flag.Parse()
-	// client, _ := rpc.Dial("tcp", *brokerAddr)
-	// client.Call(stubs.)
-
 	world := make([][]uint8, p.ImageHeight)
 	for i := range world {
 		world[i] = make([]uint8, p.ImageWidth)
@@ -153,12 +148,10 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	turn := 0
 	ticker := time.NewTicker(2 * time.Second)
 	done := make(chan bool)
-	// pause := false
+	//pause := false
 	quit := false
-	//waitToUnpause := make(chan bool)
 
 	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
-	// TODO : Connect with the broker, not the worker
 	// Use Register Request (via RPC)
 	flag.Parse()
 	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
@@ -210,7 +203,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 					}
 
 					//fmt.Println("At turn", turn, "there are", aliveCount, "alive cells")
-
 					//c.events <- aliveReport
 				}
 			} else {
@@ -231,11 +223,14 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 			case command := <-action:
 				switch command {
 				case stubs.Pause:
-					turnChan <- turn
+					//turnChan <- turn
 					client.Call(stubs.ActionHandler, stubs.StateRequest{State: stubs.Pause}, new(stubs.StatusReport))
-				case stubs.UnPause:
+
 					turnChan <- turn
+				case stubs.UnPause:
+					//turnChan <- turn
 					client.Call(stubs.ActionHandler, stubs.StateRequest{State: stubs.UnPause}, new(stubs.StatusReport))
+					turnChan <- turn
 				case stubs.Quit:
 					res := new(stubs.Response)
 					client.Call(stubs.ActionReport, stubs.StateRequest{State: stubs.Quit}, res)
@@ -270,22 +265,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	//time.Sleep(4 * time.Second)
 	world = response.World
 	turn = response.TurnsDone
-
-	/*for {
-		keypress := stubs.StateRequest{State: 5}
-		status := new(stubs.Response)
-		errr := client.Call(stubs.Publish, keypress, status)
-		if errr != nil {
-			fmt.Println("RPC client returned error:")
-			fmt.Println(errr)
-			fmt.Println("Shutting down miner.")
-			break
-		}
-		world = status.World
-		turn = status.TurnsDone
-		time.Sleep(2 * time.Second)
-		//fmt.Println("Turns done: ", turn)
-	}*/
 
 	ticker.Stop()
 	done <- true

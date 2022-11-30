@@ -20,7 +20,8 @@ return string(runes)
 }*/
 
 var listener net.Listener
-var pause bool = false
+var pause bool
+var quit bool
 var kill bool = false
 var waitToUnpause chan bool
 
@@ -127,22 +128,12 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	}
 }
 
-func killWorker() {
-	listener.Close()
-	os.Exit(0)
-}
-
-func waitUnpause() {
-	//waitToUnpause <- true
-}
-
 func (s *GolOperations) Action(req stubs.StateRequest, res *stubs.StatusReport) (err error) {
 	switch req.State {
 	case stubs.Pause:
 		pause = true
 	case stubs.UnPause:
 		pause = false
-		//waitUnpause()
 	}
 	return nil
 }
@@ -150,25 +141,24 @@ func (s *GolOperations) Action(req stubs.StateRequest, res *stubs.StatusReport) 
 func (s *GolOperations) ActionWithReport(req stubs.StateRequest, res *stubs.StatusReport) (err error) {
 	switch req.State {
 	case stubs.Quit:
-		pause = true
+		quit = true
+		fmt.Println("pause")
 	case stubs.Save:
 	case stubs.Kill:
 		kill = true
 		defer os.Exit(0)
 	}
+	fmt.Println("deafault")
 	return nil
 }
 
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	fmt.Println("UpdateWorld called")
 	fmt.Println("From:", req.Turns)
-	//receiveFromBroker(req.Turns, req.World)
-	// TODO: update world chans instead of global variables
 	globalWorld = req.World
 	completedTurns = req.Turns
 	res.Status = 7
 	incr++
-	// <-done
 	return
 }
 
@@ -177,28 +167,25 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	workerId = req.WorkerId
 	var newWorldSlice [][]uint8
 	globalWorld = req.World
+	pause = false
+	quit = false
 	turn := 0
 	incr = 0
 	for t := 0; t < req.Turns; t++ {
-		if incr == t && !pause {
-			//if pause {
-			//	<-waitToUnpause
-			//}
-			if !pause && !kill {
+		if incr == t && !pause && !quit {
+			if pause {
+				fmt.Println("Paused")
+			}
+			if !kill {
 				fmt.Println("Loop iteration", t, "on worker", workerId)
 				newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 				turn++
-				//completedTurns = turn
 				fmt.Println("chan1")
-				//turn = <-turnInternal
 				turnChan <- turn
 				fmt.Println("chan2")
 				worldChan <- newWorldSlice
 				fmt.Println("chan3")
-				//turnInternal <- turn
-				//worldInternal <- globalWorld
 				fmt.Println(turn)
-				//time.Sleep(2 * time.Second)
 			} else {
 				if kill {
 					break
@@ -209,8 +196,6 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 		} else {
 			t--
 		}
-
-		//time.Sleep(2 * time.Second)
 	}
 	res.World = newWorldSlice
 	res.TurnsDone = turn
