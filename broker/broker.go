@@ -22,8 +22,6 @@ var nextId = 0
 var topicmx sync.RWMutex
 var unit int
 
-// var theWorld World
-
 type World struct {
 	world [][]uint8
 	turns int
@@ -167,7 +165,6 @@ var incr int = 0
 
 func merge(ubworldSlice [][]uint8, w Worker) {
 	for i := range ubworldSlice {
-		//fmt.Println("merge slice on:", w.params.StartY+i)
 		copy(world[w.params.StartY+i], ubworldSlice[i])
 	}
 	incr++
@@ -217,10 +214,6 @@ func closeBroker() {
 
 type Broker struct{}
 
-// func (b *Broker) ReportStatus(req stubs.StateRequest, req *stubs.Response) (err error) {
-// 	return err
-// }
-
 func (b *Broker) UpdateBroker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	err = updateBroker(req.Turns, req.World, req.WorkerId)
 	return err
@@ -246,9 +239,6 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 	if len(workers) == p.Threads {
 		for _, w := range workers {
 			startGame := make(chan bool)
-			fmt.Println("Unit = ", unit)
-			fmt.Println("wid = ", w.id)
-			fmt.Println("widXunit = ", w.id*unit)
 			if w.id != p.Threads-1 {
 				w.params = WorkerParams{
 					StartX: 0,
@@ -330,8 +320,6 @@ func (b *Broker) ActionWithReport(req stubs.StateRequest, res *stubs.Response) (
 }
 
 func main() {
-	// Listens to the distributor
-	//pAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
 	rpc.Register(&Broker{})
 	listener, _ := net.Listen("tcp", ":"+"8030")

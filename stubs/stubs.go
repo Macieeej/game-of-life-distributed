@@ -1,9 +1,6 @@
 package stubs
 
 var ProcessTurnsHandler = "GolOperations.Process"
-
-// var OperationsHandler = "GolOperations.Operations"
-var JobHandler = "GolOperations.ListenToWork"
 var ActionHandler = "Broker.Action"
 var ActionReport = "Broker.ActionWithReport"
 var ActionHandlerWorker = "GolOperations.Action"
@@ -12,12 +9,8 @@ var ConnectDistributor = "Broker.ConnectDistributor"
 var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
 var Publish = "Broker.Publish"
-var Report = "GolOperations.Report"
-var UpdateWorld = "GolOperations.UpdateWorld"
 var UpdateBroker = "Broker.UpdateBroker"
 var UpdateWorker = "GolOperations.UpdateWorker"
-
-//var UpdateWorker = "Broker.UpdateWorker"
 
 const NoAction int = 0
 const Save int = 1
