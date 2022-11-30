@@ -162,6 +162,16 @@ func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusR
 	return
 }
 
+func worker(p stubs.Params, startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, turn int) {
+	//flipFragment := make([]util.Cell, (endY-startY)*endX/2)
+	newPart := make([][]uint8, endY-startY)
+	for i := range newPart {
+		newPart[i] = make([]uint8, endX)
+	}
+	newPart, _ = CalculateNextState(p.ImageHeight, p.ImageWidth, startY, endY, world)
+	out <- newPart
+}
+
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
 	fmt.Println("Processing")
 	workerId = req.WorkerId
@@ -171,20 +181,47 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	quit = false
 	turn := 0
 	incr = 0
+	distThreads := 2
 	for t := 0; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
 			if pause {
 				fmt.Println("Paused")
 			}
 			if !kill {
-				fmt.Println("Loop iteration", t, "on worker", workerId)
-				newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
-				turn++
-				fmt.Println("chan1")
-				turnChan <- turn
-				fmt.Println("chan2")
-				worldChan <- newWorldSlice
-				fmt.Println("chan3")
+
+				if distThreads == 1 {
+					//world, _ = CalculateNextState(p.ImageHeight, p.ImageWidth, 0, p.ImageHeight, world)
+					newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
+					turn++
+					turnChan <- turn
+					worldChan <- newWorldSlice
+				} else {
+					var worldFragment [][]uint8
+					channels := make([]chan [][]uint8, distThreads)
+					// flipChan := make([]chan []util.Cell, p.Threads)
+					unit := int(p.ImageHeight / distThreads)
+					for i := 0; i < distThreads; i++ {
+						channels[i] = make(chan [][]uint8)
+						// flipChan[i] = make(chan []util.Cell)
+						if i == distThreads-1 {
+							// Handling with problems if threads division goes with remainders
+							go worker(req.Params, i*unit, p.ImageHeight, 0, p.ImageWidth, globalWorld, channels[i], turn)
+						} else {
+							go worker(req.Params, i*unit, (i+1)*unit, 0, p.ImageWidth, globalWorld, channels[i], turn)
+						}
+					}
+					for i := 0; i < distThreads; i++ {
+						worldPart := <-channels[i]
+						worldFragment = append(worldFragment, worldPart...)
+					}
+					for j := range worldFragment {
+						copy(newWorldSlice[j], worldFragment[j])
+					}
+					turn++
+					turnChan <- turn
+					worldChan <- newWorldSlice
+				}
+
 				fmt.Println(turn)
 			} else {
 				if kill {
