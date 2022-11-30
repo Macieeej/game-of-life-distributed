@@ -11,14 +11,6 @@ import (
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
-// analogue to updateWorld function
-/** Super-Secret `reversing a string' method we can't allow clients to see. **/
-/*func ReverseString(s string, i int) string {
-time.Sleep(time.DurationCall runes[j], runes[i]
-}
-return string(runes)
-}*/
-
 var listener net.Listener
 var pause bool
 var quit bool
@@ -44,12 +36,19 @@ var incr int
 var resume chan bool
 var done chan bool
 
-func getOutboundIP() string {
-	conn, _ := net.Dial("udp", "8.8.8.8:80")
-	defer conn.Close()
-	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
-	return localAddr
-}
+// func getOutboundIP() string {
+// 	conn, _ := net.Dial("udp", "8.8.8.8:80")
+// 	defer conn.Close()
+// 	localAddr := conn.RemoteAddr().(*net.UDPAddr).IP.String()
+// 	return localAddr
+// }
+
+// func getIP() string {
+// 	conn, _ := net.Dial("udp", "8.8.8.8:80")
+// 	defer conn.Close()
+// 	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
+// 	return localAddr
+// }
 
 func mod(a, b int) int {
 	return (a%b + b) % b
@@ -227,7 +226,12 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 }
 
 func main() {
+	//fmt.Println("remote")
+	//fmt.Println(getOutboundIP() + ":")
+	//fmt.Println("local")
+	//fmt.Println(getIP() + ":")
 	pAddr := flag.String("port", "8050", "Port to listen on")
+	pIp := flag.String("ip", "127.0.0.1", "Port to listen on")
 	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
 	client, err := rpc.Dial("tcp", *brokerAddr)
@@ -235,13 +239,23 @@ func main() {
 		fmt.Println(err)
 	}
 	rpc.Register(&GolOperations{})
-	fmt.Println(getOutboundIP() + ":" + *pAddr)
+	//fmt.Println(*pAddr)
+
 	listenerr, err := net.Listen("tcp", ":"+*pAddr)
+	//fmt.Println(getOutboundIP() + ":" + "8050")
+	//listenerr, err := net.Listen("tcp", ":"+"8050")
+	// fmt.Println("remote")
+	// fmt.Println(getOutboundIP() + ":")
+	// fmt.Println("local")
+	// fmt.Println(getIP() + ":")
+
 	if err != nil {
 		fmt.Println(err)
 	}
 	subscribe := stubs.SubscribeRequest{
-		WorkerAddress: getOutboundIP() + ":" + *pAddr,
+
+		WorkerAddress: *pIp + ":" + *pAddr,
+
 	}
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
