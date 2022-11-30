@@ -36,19 +36,19 @@ var incr int
 var resume chan bool
 var done chan bool
 
-func getOutboundIP() string {
-	conn, _ := net.Dial("udp", "8.8.8.8:80")
-	defer conn.Close()
-	localAddr := conn.RemoteAddr().(*net.UDPAddr).IP.String()
-	return localAddr
-}
+// func getOutboundIP() string {
+// 	conn, _ := net.Dial("udp", "8.8.8.8:80")
+// 	defer conn.Close()
+// 	localAddr := conn.RemoteAddr().(*net.UDPAddr).IP.String()
+// 	return localAddr
+// }
 
-func getIP() string {
-	conn, _ := net.Dial("udp", "8.8.8.8:80")
-	defer conn.Close()
-	localAddr := conn.RemoteAddr().(*net.UDPAddr).IP.String()
-	return localAddr
-}
+// func getIP() string {
+// 	conn, _ := net.Dial("udp", "8.8.8.8:80")
+// 	defer conn.Close()
+// 	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
+// 	return localAddr
+// }
 
 func mod(a, b int) int {
 	return (a%b + b) % b
@@ -205,7 +205,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 
 func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
-	// pIp := flag.String("ip", "127.0.0.1", "Port to listen on")
+	pIp := flag.String("ip", "127.0.0.1", "Port to listen on")
 	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
 	client, err := rpc.Dial("tcp", *brokerAddr)
@@ -215,18 +215,18 @@ func main() {
 	}
 	rpc.Register(&GolOperations{})
 	//fmt.Println(*pAddr)
-	fmt.Println("remote")
-	fmt.Println(getOutboundIP() + ":" + *pAddr)
-	fmt.Println("local")
-	fmt.Println(getIP() + ":" + *pAddr)
 	listenerr, err := net.Listen("tcp", ":"+*pAddr)
 	//fmt.Println(getOutboundIP() + ":" + "8050")
 	//listenerr, err := net.Listen("tcp", ":"+"8050")
+	// fmt.Println("remote")
+	// fmt.Println(getOutboundIP() + ":")
+	// fmt.Println("local")
+	// fmt.Println(getIP() + ":")
 	if err != nil {
 		fmt.Println(err)
 	}
 	subscribe := stubs.SubscribeRequest{
-		WorkerAddress: getOutboundIP() + ":" + "8050",
+		WorkerAddress: *pIp + ":" + *pAddr,
 	}
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
