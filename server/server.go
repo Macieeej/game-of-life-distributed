@@ -175,7 +175,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	turn := 0
 	incr = 0
 	// HARDCODE NO OF THREADS ON THE --SERVER SIDE'S WORKER--
-	distThreads := 4
+	distThreads := 2
 	for t := 0; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
 			if pause {
