@@ -4,14 +4,20 @@ var ProcessTurnsHandler = "GolOperations.Process"
 
 // var OperationsHandler = "GolOperations.Operations"
 var JobHandler = "GolOperations.ListenToWork"
-var PauseHandler = "GolOperations.ListenToPause"
-var BrokerAndWorker = "Broker.ConnectWorker"
+var ActionHandler = "Broker.Action"
+var ActionReport = "Broker.ActionWithReport"
+var ActionHandlerWorker = "GolOperations.Action"
+var ActionReportWorker = "GolOperations.ActionWithReport"
 var ConnectDistributor = "Broker.ConnectDistributor"
 var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
 var Publish = "Broker.Publish"
 var Report = "GolOperations.Report"
-var UpdateWorld = "GolOperation.UpdateWorld"
+var UpdateWorld = "GolOperations.UpdateWorld"
+var UpdateBroker = "Broker.UpdateBroker"
+var UpdateWorker = "GolOperations.UpdateWorker"
+
+//var UpdateWorker = "Broker.UpdateWorker"
 
 const NoAction int = 0
 const Save int = 1
@@ -48,13 +54,14 @@ type Request struct {
 }
 
 type WorkerRequest struct {
-	StartY int
-	EndY   int
-	StartX int
-	EndX   int
-	World  [][]uint8
-	Turns  int
-	Params Params
+	WorkerId int
+	StartY   int
+	EndY     int
+	StartX   int
+	EndX     int
+	World    [][]uint8
+	Turns    int
+	Params   Params
 }
 
 type PauseRequest struct {
@@ -76,8 +83,9 @@ type RegisterRequest struct {
 }
 
 type UpdateRequest struct {
-	World [][]uint8
-	Turns int
+	World    [][]uint8
+	Turns    int
+	WorkerId int
 }
 
 type ActionRequest struct {
@@ -100,6 +108,9 @@ type StateRequest struct {
 }
 
 // ----------------- Ticker -----------------------
+// (Distributor -> Broker)
+type TickerRequest struct {
+}
 
 // (Distributor -> Broker)
 // (Broker -> Distributor)
