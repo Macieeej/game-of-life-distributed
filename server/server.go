@@ -80,7 +80,6 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	flipCell := make([]util.Cell, height, width)
 	for i := 0; i < endY-startY; i++ {
 		newWorld[i] = make([]byte, width)
-		// copy(newWorld[i], world[startY+i])
 	}
 
 	for y := 0; y < endY-startY; y++ {
@@ -107,11 +106,6 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 }
 
 type GolOperations struct{}
-
-func (s *GolOperations) Report(req stubs.ActionRequest, res *stubs.Response) (err error) {
-	//res.TurnsDone, res.World = sendToBroker()
-	return
-}
 
 func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	for {
@@ -163,7 +157,6 @@ func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusR
 }
 
 func worker(p stubs.Params, startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, turn int) {
-	//flipFragment := make([]util.Cell, (endY-startY)*endX/2)
 	newPart := make([][]uint8, endY-startY)
 	for i := range newPart {
 		newPart[i] = make([]uint8, endX)
@@ -181,16 +174,15 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	quit = false
 	turn := 0
 	incr = 0
-	distThreads := 2
+	// HARDCODE NO OF THREADS ON THE --SERVER SIDE'S WORKER--
+	distThreads := 4
 	for t := 0; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
 			if pause {
 				fmt.Println("Paused")
 			}
 			if !kill {
-
 				if distThreads == 1 {
-					//world, _ = CalculateNextState(p.ImageHeight, p.ImageWidth, 0, p.ImageHeight, world)
 					newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 					turn++
 					turnChan <- turn
@@ -198,28 +190,23 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 				} else {
 					var worldFragment [][]uint8
 					channels := make([]chan [][]uint8, distThreads)
-					// flipChan := make([]chan []util.Cell, p.Threads)
-					unit := int(p.ImageHeight / distThreads)
+					unit := int((req.EndY - req.StartY) / distThreads)
 					for i := 0; i < distThreads; i++ {
 						channels[i] = make(chan [][]uint8)
-						// flipChan[i] = make(chan []util.Cell)
 						if i == distThreads-1 {
 							// Handling with problems if threads division goes with remainders
-							go worker(req.Params, i*unit, p.ImageHeight, 0, p.ImageWidth, globalWorld, channels[i], turn)
+							go worker(req.Params, req.StartY+(i*unit), req.EndY, 0, req.Params.ImageWidth, globalWorld, channels[i], turn)
 						} else {
-							go worker(req.Params, i*unit, (i+1)*unit, 0, p.ImageWidth, globalWorld, channels[i], turn)
+							go worker(req.Params, req.StartY+(i*unit), req.StartY+((i+1)*unit), 0, req.Params.ImageWidth, globalWorld, channels[i], turn)
 						}
 					}
 					for i := 0; i < distThreads; i++ {
 						worldPart := <-channels[i]
 						worldFragment = append(worldFragment, worldPart...)
 					}
-					for j := range worldFragment {
-						copy(newWorldSlice[j], worldFragment[j])
-					}
 					turn++
 					turnChan <- turn
-					worldChan <- newWorldSlice
+					worldChan <- worldFragment
 				}
 
 				fmt.Println(turn)
@@ -239,29 +226,22 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	return
 }
 
-// kill := make(chan bool)
-
 func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
 	client, err := rpc.Dial("tcp", *brokerAddr)
-	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
 		fmt.Println(err)
 	}
 	rpc.Register(&GolOperations{})
-	//fmt.Println(*pAddr)
 	fmt.Println(getOutboundIP() + ":" + *pAddr)
 	listenerr, err := net.Listen("tcp", ":"+*pAddr)
-	//fmt.Println(getOutboundIP() + ":" + "8050")
-	//listenerr, err := net.Listen("tcp", ":"+"8050")
 	if err != nil {
 		fmt.Println(err)
 	}
 	subscribe := stubs.SubscribeRequest{
 		WorkerAddress: getOutboundIP() + ":" + *pAddr,
-		//WorkerAddress: getOutboundIP() + ":" + "8050",
 	}
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
@@ -269,14 +249,10 @@ func main() {
 	worldInternal = make(chan [][]uint8)
 	waitToUnpause = make(chan bool)
 
-	//go receive()
-	//go send()
 	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 
-	//client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	defer listenerr.Close()
 	go UpdateBroker2(turnChan, worldChan, client)
-	//go UpdateWorker2(client)
 	rpc.Accept(listenerr)
 
 }
