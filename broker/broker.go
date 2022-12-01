@@ -227,6 +227,7 @@ func (b *Broker) UpdateBroker(req stubs.UpdateRequest, res *stubs.StatusReport) 
 }
 
 func (b *Broker) MakeChannel(req stubs.ChannelRequest, res *stubs.StatusReport) (err error) {
+	fmt.Println("Make channel request")
 	makeChannel(req.Threads)
 	return
 }
@@ -241,6 +242,7 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 }
 
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err error) {
+	fmt.Println("Registering distributor")
 	err = registerDistributor(req, new(stubs.StatusReport))
 	// Checks if the connection and the worker is still on
 	if len(workers) == p.Threads {
