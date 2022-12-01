@@ -47,6 +47,7 @@ type Worker struct {
 var p stubs.Params
 var world [][]uint8
 var completedTurns int
+var addresses []*string
 
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
@@ -102,6 +103,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 func subscribe(workerAddress string) (err error) {
 	fmt.Println("Subscription request")
 	client, err := rpc.Dial("tcp", workerAddress)
+	client.Call(stubs.ListenToDistributor, stubs.AddressRequest{Address: getOutboundIP() + ":8030"}, new(stubs.StatusReport))
 	var newWorker Worker
 	if nextId != p.Threads-1 {
 		newWorker = Worker{
@@ -232,6 +234,15 @@ func closeBroker() {
 	return
 }
 
+func addWorkers() {
+	addresses = make([]*string, p.Threads)
+	for i := range addresses {
+		fmt.Println("Enter the", i, "th worker's ip address:")
+		fmt.Scanln(addresses[i])
+		subscribe(*addresses[i])
+	}
+}
+
 type Broker struct{}
 
 func (b *Broker) UpdateBroker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
@@ -302,6 +313,7 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 			return
 		}
 	}
+
 }
 
 func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err error) {

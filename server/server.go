@@ -17,6 +17,9 @@ var quit bool
 var kill bool = false
 var waitToUnpause chan bool
 
+var brokerAddr string
+var client *rpc.Client
+
 // updateBroker
 var turnChan chan int
 var worldChan chan [][]uint8
@@ -218,29 +221,44 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	return
 }
 
+func handleConnection() {
+	client, err := rpc.Dial("tcp", brokerAddr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	go UpdateBroker2(turnChan, worldChan, client)
+}
+
+func (*GolOperations) ListenToDistributor(req stubs.AddressRequest, res *stubs.StatusReport) (err error) {
+	brokerAddr = req.Address
+	handleConnection()
+	return
+}
+
 func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
-	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
+	// brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
 	fmt.Println("@")
-	client, err := rpc.Dial("tcp", *brokerAddr)
-	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
+	listenerr, err := net.Listen("tcp", ":"+*pAddr)
 	if err != nil {
 		fmt.Println(err)
 	}
 	rpc.Register(&GolOperations{})
+	rpc.Accept(listenerr)
+
+	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	//fmt.Println(*pAddr)
 	fmt.Println(getOutboundIP() + ":" + *pAddr)
-	listenerr, err := net.Listen("tcp", ":"+*pAddr)
+
 	//fmt.Println(getOutboundIP() + ":" + "8050")
+	// client, err := rpc.Dial("tcp", brokerAddr)
 	//listenerr, err := net.Listen("tcp", ":"+"8050")
-	if err != nil {
-		fmt.Println(err)
-	}
-	subscribe := stubs.SubscribeRequest{
-		WorkerAddress: getOutboundIP() + ":" + *pAddr,
-		//WorkerAddress: getOutboundIP() + ":" + "8050",
-	}
+
+	// subscribe := stubs.SubscribeRequest{
+	// 	WorkerAddress: getOutboundIP() + ":" + *pAddr,
+	// 	//WorkerAddress: getOutboundIP() + ":" + "8050",
+	// }
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
 	worldChan = make(chan [][]uint8)
@@ -249,11 +267,10 @@ func main() {
 
 	//go receive()
 	//go send()
-	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
+	// client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 
 	//client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	defer listenerr.Close()
-	go UpdateBroker2(turnChan, worldChan, client)
+	// go UpdateBroker2(turnChan, worldChan, client)
 	//go UpdateWorker2(client)
-	rpc.Accept(listenerr)
 }

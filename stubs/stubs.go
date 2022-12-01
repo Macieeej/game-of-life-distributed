@@ -11,6 +11,7 @@ var MakeChannel = "Broker.MakeChannel"
 var Publish = "Broker.Publish"
 var UpdateBroker = "Broker.UpdateBroker"
 var UpdateWorker = "GolOperations.UpdateWorker"
+var ListenToDistributor = "GolOperations.ListenToDistributor"
 
 const NoAction int = 0
 const Save int = 1
@@ -111,6 +112,10 @@ type TickerRequest struct {
 // Response that doesn't require any additional data
 type StatusReport struct {
 	Status int
+}
+
+type AddressRequest struct {
+	Address string
 }
 
 // 1. The distributor initialises the board, gets the input from the IO.
