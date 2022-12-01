@@ -47,30 +47,9 @@ type Worker struct {
 var p stubs.Params
 var world [][]uint8
 var completedTurns int
-var addresses []string
-
-func getOutboundIP() string {
-	conn, _ := net.Dial("udp", "8.8.8.8:80")
-	defer conn.Close()
-	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
-	return localAddr
-}
-
-func deleteWorker(w Worker) {
-	newWorkers := make([]Worker, p.Threads)
-	for i, w := range newWorkers {
-		if i != w.id {
-			newWorkers = append(newWorkers, w)
-		}
-	}
-	workers = newWorkers
-	nextId = w.id
-	w.worker.Close()
-}
 
 // Connect the worker in a loop
 func subscribe_loop(w Worker, startGame chan bool) {
-	fmt.Println("Loooping")
 	response := new(stubs.Response)
 	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
 	<-startGame
@@ -82,14 +61,10 @@ func subscribe_loop(w Worker, startGame chan bool) {
 			err := w.worker.Call(stubs.UpdateWorker, updateRequest, updateResponse)
 			if err != nil {
 				fmt.Println("Error calling UpdateWorker")
-				//fmt.Println(err)
 				fmt.Println("Closing subscriber thread.")
-				//Place the unfulfilled job back on the topic channel.
 				w.worldChannel <- wt
-				// deleteWorker(w)
 				break
 			}
-			fmt.Println("Updated worker:", w.id, "turns:", completedTurns)
 		}
 	}()
 	err := w.worker.Call(stubs.ProcessTurnsHandler, workerReq, response)
@@ -101,9 +76,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 
 // Initialise connecting worker, and if no error occurs, invoke register_loop.
 func subscribe(workerAddress string) (err error) {
-	fmt.Println("Subscription request")
 	client, err := rpc.Dial("tcp", workerAddress)
-	client.Call(stubs.ListenToDistributor, stubs.AddressRequest{Address: getOutboundIP() + ":8030"}, new(stubs.StatusReport))
 	var newWorker Worker
 	if nextId != p.Threads-1 {
 		newWorker = Worker{
@@ -145,7 +118,6 @@ func subscribe(workerAddress string) (err error) {
 		}
 	}()
 	if err == nil {
-		fmt.Println("Looooop")
 		go subscribe_loop(newWorker, startGame)
 	} else {
 		fmt.Println("Error subscribing ", workerAddress)
@@ -178,8 +150,6 @@ func makeChannel(threads int) {
 
 	for i := range worldChan {
 		worldChan[i] = make(chan World)
-
-		fmt.Println("Created channel #", i)
 	}
 }
 
@@ -187,11 +157,11 @@ var incr int = 0
 
 func merge(ubworldSlice [][]uint8, w Worker) {
 	for i := range ubworldSlice {
+
 		copy(world[w.params.StartY+i], ubworldSlice[i])
 	}
 	incr++
 
-	// return
 }
 
 func matchWorker(id int) Worker {
@@ -208,12 +178,10 @@ var worldChanWhat []chan [][]uint8
 func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
 	topicmx.Lock()
 	defer topicmx.Unlock()
-	fmt.Println("Call merge func for worker:", workerId)
 	merge(ubworldSlice, matchWorker(workerId))
 
 	if incr == p.Threads {
 		for _, w := range workers {
-			fmt.Println("Sending update to worker #", w.id)
 			w.worldChannel <- World{
 				world: world,
 				turns: ubturns,
@@ -232,15 +200,6 @@ func closeBroker() {
 	}
 	defer os.Exit(0)
 	return
-}
-
-func addWorkers() {
-	addresses = make([]string, p.Threads)
-	for i := range addresses {
-		fmt.Println("Enter the", i, "th worker's ip address:")
-		fmt.Scanln(&addresses[i])
-		subscribe(addresses[i])
-	}
 }
 
 type Broker struct{}
@@ -266,7 +225,6 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err error) {
 	err = registerDistributor(req, new(stubs.StatusReport))
-	addWorkers()
 	// Checks if the connection and the worker is still on
 	if len(workers) == p.Threads {
 		for _, w := range workers {
@@ -314,11 +272,10 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 			return
 		}
 	}
-
 }
 
+// loop and condition added to make sure that world variable is updated before publishing
 func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err error) {
-	// loop and condition added to make sure that world variable is updated before publishing
 	for {
 		if incr == 0 {
 			res.World = world
@@ -326,8 +283,6 @@ func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err erro
 			break
 		}
 	}
-
-	//err = publish(stubs.StateRequest{State: req.State})
 	return err
 }
 
@@ -353,10 +308,10 @@ func (b *Broker) ActionWithReport(req stubs.StateRequest, res *stubs.Response) (
 }
 
 func main() {
-	fmt.Println(getOutboundIP())
+	pAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
 	rpc.Register(&Broker{})
-	listener, _ := net.Listen("tcp", ":"+"8030")
+	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
 }

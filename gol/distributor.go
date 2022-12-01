@@ -148,8 +148,11 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	turn := 0
 	ticker := time.NewTicker(2 * time.Second)
 	done := make(chan bool)
+	//pause := false
 	quit := false
 
+	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
+	// Use Register Request (via RPC)
 	flag.Parse()
 	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
@@ -167,6 +170,8 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 					// The distributor doesn't know the exact turn every time,
 					// But only knows when some events happen (Ticker, save, ..)
 				case <-ticker.C:
+
+					// TODO : Get the report from the broker.
 					tickerRequest := stubs.TickerRequest{}
 					response := new(stubs.Response)
 					errr := client.Call(stubs.Publish, tickerRequest, response)
@@ -178,7 +183,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 					}
 					world = response.World
 					turn = response.TurnsDone
-					fmt.Println("ticker")
 					if turn == 0 {
 						aliveReport := AliveCellsCount{
 							CompletedTurns: turn,
@@ -196,6 +200,9 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 						}
 						c.events <- aliveReport
 					}
+
+					//fmt.Println("At turn", turn, "there are", aliveCount, "alive cells")
+					//c.events <- aliveReport
 				}
 			} else {
 				return
@@ -215,9 +222,12 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 			case command := <-action:
 				switch command {
 				case stubs.Pause:
+					//turnChan <- turn
 					client.Call(stubs.ActionHandler, stubs.StateRequest{State: stubs.Pause}, new(stubs.StatusReport))
+
 					turnChan <- turn
 				case stubs.UnPause:
+					//turnChan <- turn
 					client.Call(stubs.ActionHandler, stubs.StateRequest{State: stubs.UnPause}, new(stubs.StatusReport))
 					turnChan <- turn
 				case stubs.Quit:
@@ -251,6 +261,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 		ImageHeight: p.ImageHeight}
 	response := new(stubs.Response)
 	client.Call(stubs.ConnectDistributor, request, response)
+	//time.Sleep(4 * time.Second)
 	world = response.World
 	turn = response.TurnsDone
 

@@ -220,7 +220,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	rpc.Register(&GolOperations{})
 	listeners, err := net.Listen("tcp", ":"+*pAddr)
 	if err != nil {
