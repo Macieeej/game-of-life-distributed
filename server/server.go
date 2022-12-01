@@ -19,6 +19,7 @@ var waitToUnpause chan bool
 // updateBroker
 var turnChan chan int
 var worldChan chan [][]uint8
+var connectChannel chan bool
 
 // updateWorker
 var workerTurnChan chan int
@@ -28,7 +29,7 @@ var turnInternal chan int
 var worldInternal chan [][]uint8
 
 var workerId int
-var nextAddr string
+var brokerAddr string
 var globalWorld [][]uint8
 var completedTurns int
 var incr int
@@ -212,16 +213,28 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	return
 }
 
+func (s *GolOperations) GetAddress(req stubs.AddressRequest, res *stubs.StatusReport) (err error) {
+	brokerAddr = req.Address
+	go startDialing()
+	return
+}
+
+func startDialing() {
+	connectChannel <- true
+}
+
 func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
-	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
-	flag.Parse()
-	client, err := rpc.Dial("tcp", *brokerAddr)
+	rpc.Register(&GolOperations{})
+	listeners, err := net.Listen("tcp", ":"+*pAddr)
 	if err != nil {
 		fmt.Println(err)
 	}
-	rpc.Register(&GolOperations{})
-	listeners, err := net.Listen("tcp", ":"+*pAddr)
+	rpc.Accept(listeners)
+
+	// brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
+	flag.Parse()
+	client, err := rpc.Dial("tcp", brokerAddr)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -233,11 +246,11 @@ func main() {
 	worldChan = make(chan [][]uint8)
 	worldInternal = make(chan [][]uint8)
 	waitToUnpause = make(chan bool)
+	connectChannel = make(chan bool)
 
 	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 
 	defer listeners.Close()
 	go UpdateBroker(turnChan, worldChan, client)
-	rpc.Accept(listeners)
 
 }

@@ -21,6 +21,7 @@ var workers []Worker
 var nextId = 0
 var topicmx sync.RWMutex
 var unit int
+var workerAddress []string
 
 type World struct {
 	world [][]uint8
@@ -140,6 +141,12 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.ImageWidth = req.ImageWidth
 	unit = int(p.ImageHeight / p.Threads)
 	completedTurns = 0
+	workerAddress = make([]string, p.Threads)
+	for i := range workerAddress {
+		fmt.Printf("Enter ip address and port for the server:")
+		fmt.Scanf(workerAddress[i])
+		go subscribe(workerAddress[i])
+	}
 	return err
 }
 
@@ -261,7 +268,11 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 			startGame := make(chan bool)
 			go subscribe_loop(w, startGame)
 			go func() {
-				startGame <- true
+				for {
+					if p.Threads == len(workers) {
+						startGame <- true
+					}
+				}
 			}()
 		}
 	}
