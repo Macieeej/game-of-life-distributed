@@ -160,7 +160,7 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 }
 
 func main() {
-	pAddr := flag.String("port", "8030", "Port to listen on")
+	pAddr := flag.String("port", "8031", "Port to listen on")
 	//flag.Parse()
 	rpc.Register(&GolOperations{})
 	//listener, _ := net.Listen("tcp", ":"+*pAddr)
