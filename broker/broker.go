@@ -322,7 +322,7 @@ func (b *Broker) ActionWithReport(req stubs.StateRequest, res *stubs.Response) (
 func main() {
 	flag.Parse()
 	rpc.Register(&Broker{})
-	listener, _ := net.Listen("tcp", ":"+"8030")
+	listener, _ := net.Listen("tcp", ":8030")
 	defer listener.Close()
 	rpc.Accept(listener)
 }
