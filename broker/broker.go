@@ -48,10 +48,20 @@ var p stubs.Params
 var world [][]uint8
 var completedTurns int
 
+func getOutboundIP() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.RemoteAddr().(*net.UDPAddr).IP.String()
+	return localAddr
+}
+
 func deleteWorker(w Worker) {
-	newWorkers := make([]Worker, 16)
-	newWorkers = append(newWorkers, workers[:w.id]...)
-	newWorkers = append(newWorkers, workers[w.id+1:]...)
+	newWorkers := make([]Worker, p.Threads)
+	for i, w := range newWorkers {
+		if i != w.id {
+			newWorkers = append(newWorkers, w)
+		}
+	}
 	workers = newWorkers
 	nextId = w.id
 	w.worker.Close()
@@ -75,7 +85,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 				fmt.Println("Closing subscriber thread.")
 				//Place the unfulfilled job back on the topic channel.
 				w.worldChannel <- wt
-				deleteWorker(w)
+				// deleteWorker(w)
 				break
 			}
 			fmt.Println("Updated worker:", w.id, "turns:", completedTurns)
@@ -330,6 +340,7 @@ func (b *Broker) ActionWithReport(req stubs.StateRequest, res *stubs.Response) (
 }
 
 func main() {
+	fmt.Println(getOutboundIP())
 	flag.Parse()
 	rpc.Register(&Broker{})
 	listener, _ := net.Listen("tcp", ":"+"8030")
