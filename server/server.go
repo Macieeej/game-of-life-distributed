@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"net/rpc"
@@ -159,11 +160,11 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 }
 
 func main() {
-	//pAddr := flag.String("port", "8031", "Port to listen on")
+	pAddr := flag.String("port", "8030", "Port to listen on")
 	//flag.Parse()
 	rpc.Register(&GolOperations{})
 	//listener, _ := net.Listen("tcp", ":"+*pAddr)
-	listener, err := net.Listen("tcp", ":8031")
+	listener, err := net.Listen("tcp", ":"+*pAddr)
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
 	}
