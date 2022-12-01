@@ -183,7 +183,6 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 					}
 					world = response.World
 					turn = response.TurnsDone
-					fmt.Println("ticker")
 					if turn == 0 {
 						aliveReport := AliveCellsCount{
 							CompletedTurns: turn,
