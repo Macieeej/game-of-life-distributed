@@ -48,6 +48,15 @@ var p stubs.Params
 var world [][]uint8
 var completedTurns int
 
+func deleteWorker(w Worker) {
+	newWorkers := make([]Worker, 16)
+	newWorkers = append(newWorkers, workers[:w.id]...)
+	newWorkers = append(newWorkers, workers[w.id+1:]...)
+	workers = newWorkers
+	nextId = w.id
+	w.worker.Close()
+}
+
 // Connect the worker in a loop
 func subscribe_loop(w Worker, startGame chan bool) {
 	fmt.Println("Loooping")
@@ -66,6 +75,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 				fmt.Println("Closing subscriber thread.")
 				//Place the unfulfilled job back on the topic channel.
 				w.worldChannel <- wt
+				deleteWorker(w)
 				break
 			}
 			fmt.Println("Updated worker:", w.id, "turns:", completedTurns)

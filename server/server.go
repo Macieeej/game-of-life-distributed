@@ -36,12 +36,12 @@ var incr int
 var resume chan bool
 var done chan bool
 
-// func getOutboundIP() string {
-// 	conn, _ := net.Dial("udp", "8.8.8.8:80")
-// 	defer conn.Close()
-// 	localAddr := conn.RemoteAddr().(*net.UDPAddr).IP.String()
-// 	return localAddr
-// }
+func getOutboundIP() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.RemoteAddr().(*net.UDPAddr).IP.String()
+	return localAddr
+}
 
 // func getIP() string {
 // 	conn, _ := net.Dial("udp", "8.8.8.8:80")
@@ -255,7 +255,6 @@ func main() {
 	subscribe := stubs.SubscribeRequest{
 
 		WorkerAddress: *pIp + ":" + *pAddr,
-
 	}
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
