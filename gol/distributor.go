@@ -151,10 +151,11 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	//pause := false
 	quit := false
 
-	//server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
+	serverAddr := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
 	// Use Register Request (via RPC)
 	flag.Parse()
-	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
+	client, err := rpc.Dial("tcp", *serverAddr)
+	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
 		log.Fatal("dialing:", err)
 	}
