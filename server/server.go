@@ -205,16 +205,17 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 // kill := make(chan bool)
 
 func main() {
-	pAddr := flag.String("port", "8090", "Port to listen on")
+	pAddr := flag.String("port", "8050", "Port to listen on")
 	//pIp := flag.String("ip", "127.0.0.1", "Port to listen on")
-	brokerAddr := flag.String("broker", "3.92.61.3:8033", "Address of broker instance")
+	//brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
-	client, err := rpc.Dial("tcp", *brokerAddr)
-	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
-	if err != nil {
-		fmt.Println(err)
-	}
+	//client, err := rpc.Dial("tcp", *brokerAddr)
+	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
 	rpc.Register(&GolOperations{})
+
 	//fmt.Println(*pAddr)
 	//fmt.Println(getOutboundIP() + ":" + *pAddr)
 	listenerr, err := net.Listen("tcp", ":"+*pAddr)
@@ -223,10 +224,10 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	subscribe := stubs.SubscribeRequest{
-		//WorkerAddress: *pIp + ":" + *pAddr,
-		WorkerAddress: getOutboundIP() + ":" + *pAddr,
-	}
+	//subscribe := stubs.SubscribeRequest{
+	//	//WorkerAddress: *pIp + ":" + *pAddr,
+	//	WorkerAddress: getOutboundIP() + ":" + *pAddr,
+	//}
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
 	worldChan = make(chan [][]uint8)
@@ -235,7 +236,7 @@ func main() {
 
 	//go receive()
 	//go send()
-	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
+	//client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 
 	//client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 	defer listenerr.Close()

@@ -148,6 +148,13 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.ImageWidth = req.ImageWidth
 	unit = int(p.ImageHeight / p.Threads)
 	completedTurns = 0
+	addresses := []string{"127.0.0.1:8050"}
+	var workerClients []*rpc.Client
+	for _, address := range addresses { // dial to each worker in our list of addresses
+		worker, _ := rpc.Dial("tcp", address)
+		//handleError("Dial worker error", err)
+		workerClients = append(workerClients, worker)
+	}
 	return err
 }
 
@@ -243,6 +250,7 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err error) {
 	err = registerDistributor(req, new(stubs.StatusReport))
 	// Checks if the connection and the worker is still on
+
 	if len(workers) == p.Threads {
 		for _, w := range workers {
 			startGame := make(chan bool)
@@ -334,7 +342,7 @@ func main() {
 	//pAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
 	rpc.Register(&Broker{})
-	listener, _ := net.Listen("tcp", ":8033")
+	listener, _ := net.Listen("tcp", ":"+"8030")
 	defer listener.Close()
 	rpc.Accept(listener)
 }
