@@ -226,6 +226,11 @@ func handleConnection() {
 	if err != nil {
 		fmt.Println(err)
 	}
+	turnChan = make(chan int)
+	turnInternal = make(chan int)
+	worldChan = make(chan [][]uint8)
+	worldInternal = make(chan [][]uint8)
+	waitToUnpause = make(chan bool)
 	go UpdateBroker2(turnChan, worldChan, client)
 }
 
@@ -259,11 +264,6 @@ func main() {
 	// 	WorkerAddress: getOutboundIP() + ":" + *pAddr,
 	// 	//WorkerAddress: getOutboundIP() + ":" + "8050",
 	// }
-	turnChan = make(chan int)
-	turnInternal = make(chan int)
-	worldChan = make(chan [][]uint8)
-	worldInternal = make(chan [][]uint8)
-	waitToUnpause = make(chan bool)
 
 	//go receive()
 	//go send()
