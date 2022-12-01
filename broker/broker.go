@@ -22,8 +22,6 @@ var nextId = 0
 var topicmx sync.RWMutex
 var unit int
 
-// var theWorld World
-
 type World struct {
 	world [][]uint8
 	turns int

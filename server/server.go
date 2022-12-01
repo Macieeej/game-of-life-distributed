@@ -11,14 +11,6 @@ import (
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
-// analogue to updateWorld function
-/** Super-Secret `reversing a string' method we can't allow clients to see. **/
-/*func ReverseString(s string, i int) string {
-time.Sleep(time.DurationCall runes[j], runes[i]
-}
-return string(runes)
-}*/
-
 var pause bool
 var quit bool
 var kill bool = false
@@ -79,7 +71,6 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	flipCell := make([]util.Cell, height, width)
 	for i := 0; i < endY-startY; i++ {
 		newWorld[i] = make([]byte, width)
-		// copy(newWorld[i], world[startY+i])
 	}
 
 	for y := 0; y < endY-startY; y++ {
@@ -153,6 +144,15 @@ func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusR
 	return
 }
 
+func worker(p stubs.Params, startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, turn int) {
+	newPart := make([][]uint8, endY-startY)
+	for i := range newPart {
+		newPart[i] = make([]uint8, endX)
+	}
+	newPart, _ = CalculateNextState(p.ImageHeight, p.ImageWidth, startY, endY, world)
+	out <- newPart
+}
+
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
 	workerId = req.WorkerId
 	var newWorldSlice [][]uint8
@@ -161,16 +161,40 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	quit = false
 	turn := 0
 	incr = 0
+	// HARDCODE NO OF THREADS ON THE --SERVER SIDE'S WORKER--
+	distThreads := 2
 	for t := 0; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
 			if pause {
 				fmt.Println("Paused")
 			}
 			if !kill {
-				newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
-				turn++
-				turnChan <- turn
-				worldChan <- newWorldSlice
+				if distThreads == 1 {
+					newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
+					turn++
+					turnChan <- turn
+					worldChan <- newWorldSlice
+				} else {
+					var worldFragment [][]uint8
+					channels := make([]chan [][]uint8, distThreads)
+					unit := int((req.EndY - req.StartY) / distThreads)
+					for i := 0; i < distThreads; i++ {
+						channels[i] = make(chan [][]uint8)
+						if i == distThreads-1 {
+							// Handling with problems if threads division goes with remainders
+							go worker(req.Params, req.StartY+(i*unit), req.EndY, 0, req.Params.ImageWidth, globalWorld, channels[i], turn)
+						} else {
+							go worker(req.Params, req.StartY+(i*unit), req.StartY+((i+1)*unit), 0, req.Params.ImageWidth, globalWorld, channels[i], turn)
+						}
+					}
+					for i := 0; i < distThreads; i++ {
+						worldPart := <-channels[i]
+						worldFragment = append(worldFragment, worldPart...)
+					}
+					turn++
+					turnChan <- turn
+					worldChan <- worldFragment
+				}
 
 				fmt.Println(turn)
 			} else {
@@ -189,14 +213,11 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	return
 }
 
-// kill := make(chan bool)
-
 func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
 	client, err := rpc.Dial("tcp", *brokerAddr)
-	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
 		fmt.Println(err)
 	}
