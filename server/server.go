@@ -39,7 +39,7 @@ var done chan bool
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
 	defer conn.Close()
-	localAddr := conn.RemoteAddr().(*net.UDPAddr).IP.String()
+	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
 	return localAddr
 }
 
