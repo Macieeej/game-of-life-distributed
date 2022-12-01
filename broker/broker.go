@@ -47,7 +47,7 @@ type Worker struct {
 var p stubs.Params
 var world [][]uint8
 var completedTurns int
-var addresses []*string
+var addresses []string
 
 func getOutboundIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
@@ -235,11 +235,11 @@ func closeBroker() {
 }
 
 func addWorkers() {
-	addresses = make([]*string, p.Threads)
+	addresses = make([]string, p.Threads)
 	for i := range addresses {
 		fmt.Println("Enter the", i, "th worker's ip address:")
-		fmt.Scanln(addresses[i])
-		subscribe(*addresses[i])
+		fmt.Scanln(&addresses[i])
+		subscribe(addresses[i])
 	}
 }
 
@@ -266,6 +266,7 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err error) {
 	err = registerDistributor(req, new(stubs.StatusReport))
+	addWorkers()
 	// Checks if the connection and the worker is still on
 	if len(workers) == p.Threads {
 		for _, w := range workers {
