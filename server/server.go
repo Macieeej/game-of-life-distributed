@@ -225,15 +225,15 @@ func startDialing() {
 
 func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
+	flag.Parse()
 	rpc.Register(&GolOperations{})
 	listeners, err := net.Listen("tcp", ":"+*pAddr)
 	if err != nil {
 		fmt.Println(err)
 	}
 	rpc.Accept(listeners)
-
+	<-connectChannel
 	// brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
-	flag.Parse()
 	client, err := rpc.Dial("tcp", brokerAddr)
 	if err != nil {
 		fmt.Println(err)
