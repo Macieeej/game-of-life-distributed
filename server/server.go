@@ -196,7 +196,6 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 					worldChan <- worldFragment
 				}
 
-				fmt.Println(turn)
 			} else {
 				if kill {
 					break
