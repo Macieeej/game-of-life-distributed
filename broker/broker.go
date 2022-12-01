@@ -233,49 +233,49 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err error) {
 	err = registerDistributor(req, new(stubs.StatusReport))
 	// Checks if the connection and the worker is still on
-	if len(workers) == p.Threads {
-		for _, w := range workers {
-			startGame := make(chan bool)
-			if w.id != p.Threads-1 {
-				w.params = WorkerParams{
-					StartX: 0,
-					StartY: w.id * unit,
-					EndX:   p.ImageWidth,
-					EndY:   (w.id + 1) * (unit),
-				}
-			} else {
-				w.params = WorkerParams{
-					StartX: 0,
-					StartY: w.id * unit,
-					EndX:   p.ImageWidth,
-					EndY:   p.ImageHeight,
-				}
-			}
+	// if len(workers) == p.Threads {
+	// 	for _, w := range workers {
+	// 		startGame := make(chan bool)
+	// 		if w.id != p.Threads-1 {
+	// 			w.params = WorkerParams{
+	// 				StartX: 0,
+	// 				StartY: w.id * unit,
+	// 				EndX:   p.ImageWidth,
+	// 				EndY:   (w.id + 1) * (unit),
+	// 			}
+	// 		} else {
+	// 			w.params = WorkerParams{
+	// 				StartX: 0,
+	// 				StartY: w.id * unit,
+	// 				EndX:   p.ImageWidth,
+	// 				EndY:   p.ImageHeight,
+	// 			}
+	// 		}
 
-			go subscribe_loop(w, startGame)
-			go func() {
-				startGame <- true
-			}()
-		}
-	} else if len(workers) < p.Threads {
-		for _, w := range workers {
-			w.params = WorkerParams{
-				StartX: 0,
-				StartY: w.id * unit,
-				EndX:   p.ImageWidth,
-				EndY:   (w.id + 1) * (unit),
-			}
-			startGame := make(chan bool)
-			go subscribe_loop(w, startGame)
-			go func() {
-				for {
-					if p.Threads == len(workers) {
-						startGame <- true
-					}
-				}
-			}()
-		}
-	}
+	// 		go subscribe_loop(w, startGame)
+	// 		go func() {
+	// 			startGame <- true
+	// 		}()
+	// 	}
+	// } else if len(workers) < p.Threads {
+	// 	for _, w := range workers {
+	// 		w.params = WorkerParams{
+	// 			StartX: 0,
+	// 			StartY: w.id * unit,
+	// 			EndX:   p.ImageWidth,
+	// 			EndY:   (w.id + 1) * (unit),
+	// 		}
+	// 		startGame := make(chan bool)
+	// 		go subscribe_loop(w, startGame)
+	// 		go func() {
+	// 			for {
+	// 				if p.Threads == len(workers) {
+	// 					startGame <- true
+	// 				}
+	// 			}
+	// 		}()
+	// 	}
+	// }
 	for {
 		if p.Turns == completedTurns {
 			res.World = world
