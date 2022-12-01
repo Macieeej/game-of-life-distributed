@@ -145,9 +145,7 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	for i := range workerAddress {
 		fmt.Printf("Enter ip address and port for the server:")
 		fmt.Scanf(workerAddress[i])
-	}
-	for j := range workerAddress {
-		go subscribe(workerAddress[j])
+		subscribe(workerAddress[i])
 	}
 	return err
 }
