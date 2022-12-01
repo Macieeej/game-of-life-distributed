@@ -1,5 +1,7 @@
 package stubs
 
+import "uk.ac.bris.cs/gameoflife/util"
+
 var ActionHandler = "Broker.Action"
 var ActionReport = "Broker.ActionWithReport"
 var ConnectDistributor = "Broker.ConnectDistributor"
@@ -7,6 +9,7 @@ var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
 var Publish = "Broker.Publish"
 var UpdateBroker = "Broker.UpdateBroker"
+var HandleCellFlip = "Broker.HandleCellFlip"
 var ProcessTurnsHandler = "GolOperations.Process"
 var ActionHandlerWorker = "GolOperations.Action"
 var ActionReportWorker = "GolOperations.ActionWithReport"
@@ -72,6 +75,7 @@ type UpdateRequest struct {
 	World    [][]uint8
 	Turns    int
 	WorkerId int
+	CellFlip []util.Cell
 }
 
 type SubscribeRequest struct {
@@ -89,4 +93,9 @@ type TickerRequest struct {
 // Response that doesn't require any additional data
 type StatusReport struct {
 	Status int
+}
+
+type CellFlipResponse struct {
+	CompletedTurns int
+	CellFlipped    []util.Cell
 }

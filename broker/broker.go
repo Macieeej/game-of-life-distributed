@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"uk.ac.bris.cs/gameoflife/stubs"
+	"uk.ac.bris.cs/gameoflife/util"
 )
 
 // 1 : Pass the report from the distributor. (Ticker request (broker -> dis))
@@ -47,6 +48,7 @@ type Worker struct {
 var p stubs.Params
 var world [][]uint8
 var completedTurns int
+var cellFlip []util.Cell
 
 // Connect the worker in a loop
 func subscribe_loop(w Worker, startGame chan bool) {
@@ -175,9 +177,10 @@ func matchWorker(id int) Worker {
 
 var worldChanWhat []chan [][]uint8
 
-func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
+func updateBroker(ubturns int, ubworldSlice [][]uint8, cellSlice []util.Cell, workerId int) error {
 	topicmx.Lock()
 	defer topicmx.Unlock()
+	cellFlip = append(cellFlip, cellSlice...)
 	merge(ubworldSlice, matchWorker(workerId))
 
 	if incr == p.Threads {
@@ -188,6 +191,7 @@ func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
 			}
 			incr--
 		}
+		cellFlip = make([]util.Cell, p.ImageHeight*p.ImageWidth)
 		completedTurns = ubturns
 
 	}
@@ -205,7 +209,7 @@ func closeBroker() {
 type Broker struct{}
 
 func (b *Broker) UpdateBroker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
-	err = updateBroker(req.Turns, req.World, req.WorkerId)
+	err = updateBroker(req.Turns, req.World, req.CellFlip, req.WorkerId)
 	return err
 }
 
@@ -305,6 +309,12 @@ func (b *Broker) ActionWithReport(req stubs.StateRequest, res *stubs.Response) (
 	}
 
 	return nil
+}
+
+func (b *Broker) HandleCellFlip(req stubs.StatusReport, res *stubs.CellFlipResponse) (err error) {
+	res.CellFlipped = cellFlip
+	res.CompletedTurns = completedTurns
+	return
 }
 
 func main() {

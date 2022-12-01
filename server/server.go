@@ -19,6 +19,7 @@ var waitToUnpause chan bool
 // updateBroker
 var turnChan chan int
 var worldChan chan [][]uint8
+var cellFlipChan chan []util.Cell
 
 // updateWorker
 var workerTurnChan chan int
@@ -30,6 +31,7 @@ var worldInternal chan [][]uint8
 var workerId int
 var nextAddr string
 var globalWorld [][]uint8
+var cellFlipped []util.Cell
 var completedTurns int
 var incr int
 var resume chan bool
@@ -98,11 +100,12 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 
 type GolOperations struct{}
 
-func UpdateBroker(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
+func UpdateBroker(tchan chan int, wchan chan [][]uint8, cchan chan []util.Cell, client *rpc.Client) {
 	for {
 		t := <-tchan
 		ws := <-wchan
-		towork := stubs.UpdateRequest{Turns: t, World: ws, WorkerId: workerId}
+		c := <-cchan
+		towork := stubs.UpdateRequest{Turns: t, World: ws, CellFlip: c, WorkerId: workerId}
 		status := new(stubs.StatusReport)
 		err := client.Call(stubs.UpdateBroker, towork, status)
 		if err != nil {
@@ -162,7 +165,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	turn := 0
 	incr = 0
 	// HARDCODE NO OF THREADS ON THE --SERVER SIDE'S WORKER--
-	distThreads := 2
+	distThreads := 1
 	for t := 0; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
 			if pause {
@@ -170,10 +173,11 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 			}
 			if !kill {
 				if distThreads == 1 {
-					newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
+					newWorldSlice, cellFlipped = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
 					turn++
 					turnChan <- turn
 					worldChan <- newWorldSlice
+					cellFlipChan <- cellFlipped
 				} else {
 					var worldFragment [][]uint8
 					channels := make([]chan [][]uint8, distThreads)
@@ -231,13 +235,14 @@ func main() {
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
 	worldChan = make(chan [][]uint8)
+	cellFlipChan = make(chan []util.Cell)
 	worldInternal = make(chan [][]uint8)
 	waitToUnpause = make(chan bool)
 
 	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 
 	defer listeners.Close()
-	go UpdateBroker(turnChan, worldChan, client)
+	go UpdateBroker(turnChan, worldChan, cellFlipChan, client)
 	rpc.Accept(listeners)
 
 }

@@ -28,11 +28,6 @@ const Pause int = 2
 const unPause int = 3
 const Kill int = 4
 
-// 1 : Pass the keypress to the annonymous goroutine function below in the distributor (dis -> dis)
-// 2 : Get the report from the broker. (Ticker request (dis -> broker))
-// 3 : Connect with the broker, not the worker (Register (dis -> broker))
-// 4 : Pass the keypress arguments to the broker. (Keypress (dis -> broker))
-
 // TODO : Pass the keypress to the annonymous goroutine function below in the distributor
 func handleKeyPress(p Params, c distributorChannels, keyPresses <-chan rune, world <-chan [][]uint8, t <-chan int, action chan int) {
 	paused := false
@@ -201,11 +196,26 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 						c.events <- aliveReport
 					}
 
-					//fmt.Println("At turn", turn, "there are", aliveCount, "alive cells")
-					//c.events <- aliveReport
 				}
 			} else {
 				return
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			res := new(stubs.CellFlipResponse)
+			client.Call(stubs.HandleCellFlip, new(stubs.StatusReport), res)
+			cellFlip := res.CellFlipped
+			for _, cell := range cellFlip {
+				c.events <- CellFlipped{
+					CompletedTurns: res.CompletedTurns,
+					Cell:           cell,
+				}
+			}
+			c.events <- TurnComplete{
+				CompletedTurns: res.CompletedTurns,
 			}
 		}
 	}()
