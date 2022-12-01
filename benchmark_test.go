@@ -15,7 +15,7 @@ func BenchmarkGol(b *testing.B) {
 	// Disable all program output apart from benchmark results
 	os.Stdout = nil
 
-	for threads := 1; threads <= 16; threads++ {
+	for threads := 1; threads <= 8; threads++ {
 		b.Run(fmt.Sprintf("%d_workers", threads), func(b *testing.B) {
 			traceParams := gol.Params{
 				Turns:       100,

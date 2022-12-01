@@ -1,9 +1,6 @@
 package stubs
 
 var ProcessTurnsHandler = "GolOperations.Process"
-
-// var OperationsHandler = "GolOperations.Operations"
-var JobHandler = "GolOperations.ListenToWork"
 var ActionHandler = "Broker.Action"
 var ActionReport = "Broker.ActionWithReport"
 var ActionHandlerWorker = "GolOperations.Action"
@@ -12,12 +9,9 @@ var ConnectDistributor = "Broker.ConnectDistributor"
 var ConnectWorker = "Broker.ConnectWorker"
 var MakeChannel = "Broker.MakeChannel"
 var Publish = "Broker.Publish"
-var Report = "GolOperations.Report"
-var UpdateWorld = "GolOperations.UpdateWorld"
 var UpdateBroker = "Broker.UpdateBroker"
 var UpdateWorker = "GolOperations.UpdateWorker"
-
-//var UpdateWorker = "Broker.UpdateWorker"
+var ListenToDistributor = "GolOperations.ListenToDistributor"
 
 const NoAction int = 0
 const Save int = 1
@@ -118,6 +112,10 @@ type TickerRequest struct {
 // Response that doesn't require any additional data
 type StatusReport struct {
 	Status int
+}
+
+type AddressRequest struct {
+	Address string
 }
 
 // 1. The distributor initialises the board, gets the input from the IO.

@@ -1,5 +1,9 @@
 name,time/op (ns/op),±
-Gol/1_workers-12,3.12103E+09,4%
-Gol/2_workers-12,2.02871E+09,5%
-Gol/3_workers-12,1.73931E+09,8%
-Gol/4_workers-12,1.63883E+09,5%
+Gol/1_workers-12,1.90217E+09,4%
+Gol/2_workers-12,1.35943E+09,3%
+Gol/3_workers-12,1.16626E+09,3%
+Gol/4_workers-12,1.25077E+09,4%
+Gol/5_workers-12,1.57723E+09,4%
+Gol/6_workers-12,1.77350E+09,5%
+Gol/7_workers-12,1.92502E+09,3%
+Gol/8_workers-12,2.06893E+09,3%

@@ -22,8 +22,6 @@ var nextId = 0
 var topicmx sync.RWMutex
 var unit int
 
-// var theWorld World
-
 type World struct {
 	world [][]uint8
 	turns int
@@ -49,6 +47,26 @@ type Worker struct {
 var p stubs.Params
 var world [][]uint8
 var completedTurns int
+var addresses []string
+
+func getOutboundIP() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
+	return localAddr
+}
+
+func deleteWorker(w Worker) {
+	newWorkers := make([]Worker, p.Threads)
+	for i, w := range newWorkers {
+		if i != w.id {
+			newWorkers = append(newWorkers, w)
+		}
+	}
+	workers = newWorkers
+	nextId = w.id
+	w.worker.Close()
+}
 
 // Connect the worker in a loop
 func subscribe_loop(w Worker, startGame chan bool) {
@@ -68,6 +86,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 				fmt.Println("Closing subscriber thread.")
 				//Place the unfulfilled job back on the topic channel.
 				w.worldChannel <- wt
+				// deleteWorker(w)
 				break
 			}
 			fmt.Println("Updated worker:", w.id, "turns:", completedTurns)
@@ -84,6 +103,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 func subscribe(workerAddress string) (err error) {
 	fmt.Println("Subscription request")
 	client, err := rpc.Dial("tcp", workerAddress)
+	client.Call(stubs.ListenToDistributor, stubs.AddressRequest{Address: getOutboundIP() + ":8030"}, new(stubs.StatusReport))
 	var newWorker Worker
 	if nextId != p.Threads-1 {
 		newWorker = Worker{
@@ -167,7 +187,6 @@ var incr int = 0
 
 func merge(ubworldSlice [][]uint8, w Worker) {
 	for i := range ubworldSlice {
-		//fmt.Println("merge slice on:", w.params.StartY+i)
 		copy(world[w.params.StartY+i], ubworldSlice[i])
 	}
 	incr++
@@ -215,11 +234,16 @@ func closeBroker() {
 	return
 }
 
-type Broker struct{}
+func addWorkers() {
+	addresses = make([]string, p.Threads)
+	for i := range addresses {
+		fmt.Println("Enter the", i, "th worker's ip address:")
+		fmt.Scanln(&addresses[i])
+		subscribe(addresses[i])
+	}
+}
 
-// func (b *Broker) ReportStatus(req stubs.StateRequest, req *stubs.Response) (err error) {
-// 	return err
-// }
+type Broker struct{}
 
 func (b *Broker) UpdateBroker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	err = updateBroker(req.Turns, req.World, req.WorkerId)
@@ -242,13 +266,11 @@ func (b *Broker) ConnectWorker(req stubs.SubscribeRequest, res *stubs.StatusRepo
 
 func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err error) {
 	err = registerDistributor(req, new(stubs.StatusReport))
+	addWorkers()
 	// Checks if the connection and the worker is still on
 	if len(workers) == p.Threads {
 		for _, w := range workers {
 			startGame := make(chan bool)
-			fmt.Println("Unit = ", unit)
-			fmt.Println("wid = ", w.id)
-			fmt.Println("widXunit = ", w.id*unit)
 			if w.id != p.Threads-1 {
 				w.params = WorkerParams{
 					StartX: 0,
@@ -292,6 +314,7 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 			return
 		}
 	}
+
 }
 
 func (b *Broker) Publish(req stubs.TickerRequest, res *stubs.Response) (err error) {
@@ -330,8 +353,7 @@ func (b *Broker) ActionWithReport(req stubs.StateRequest, res *stubs.Response) (
 }
 
 func main() {
-	// Listens to the distributor
-	//pAddr := flag.String("port", "8030", "Port to listen on")
+	fmt.Println(getOutboundIP())
 	flag.Parse()
 	rpc.Register(&Broker{})
 	listener, _ := net.Listen("tcp", ":"+"8030")
