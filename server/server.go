@@ -11,14 +11,18 @@ import (
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
-var listener net.Listener
+// analogue to updateWorld function
+/** Super-Secret `reversing a string' method we can't allow clients to see. **/
+/*func ReverseString(s string, i int) string {
+time.Sleep(time.DurationCall runes[j], runes[i]
+}
+return string(runes)
+}*/
+
 var pause bool
 var quit bool
 var kill bool = false
 var waitToUnpause chan bool
-
-var brokerAddr string
-var client *rpc.Client
 
 // updateBroker
 var turnChan chan int
@@ -75,6 +79,7 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 	flipCell := make([]util.Cell, height, width)
 	for i := 0; i < endY-startY; i++ {
 		newWorld[i] = make([]byte, width)
+		// copy(newWorld[i], world[startY+i])
 	}
 
 	for y := 0; y < endY-startY; y++ {
@@ -102,7 +107,7 @@ func CalculateNextState(height, width, startY, endY int, world [][]byte) ([][]by
 
 type GolOperations struct{}
 
-func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
+func UpdateBroker(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 	for {
 		t := <-tchan
 		ws := <-wchan
@@ -112,7 +117,6 @@ func UpdateBroker2(tchan chan int, wchan chan [][]uint8, client *rpc.Client) {
 		if err != nil {
 			fmt.Println("RPC client returned error:")
 			fmt.Println(err)
-			fmt.Println("Dropping division.")
 		}
 	}
 }
@@ -137,13 +141,11 @@ func (s *GolOperations) ActionWithReport(req stubs.StateRequest, res *stubs.Stat
 		kill = true
 		defer os.Exit(0)
 	}
-	fmt.Println("deafault")
 	return nil
 }
 
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
-	fmt.Println("UpdateWorld called")
-	fmt.Println("From:", req.Turns)
+
 	globalWorld = req.World
 	completedTurns = req.Turns
 	res.Status = 7
@@ -151,17 +153,7 @@ func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusR
 	return
 }
 
-func worker(p stubs.Params, startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, turn int) {
-	newPart := make([][]uint8, endY-startY)
-	for i := range newPart {
-		newPart[i] = make([]uint8, endX)
-	}
-	newPart, _ = CalculateNextState(p.ImageHeight, p.ImageWidth, startY, endY, world)
-	out <- newPart
-}
-
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
-	fmt.Println("Processing")
 	workerId = req.WorkerId
 	var newWorldSlice [][]uint8
 	globalWorld = req.World
@@ -169,40 +161,16 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	quit = false
 	turn := 0
 	incr = 0
-	// HARDCODE NO OF THREADS ON THE --SERVER SIDE'S WORKER--
-	distThreads := 2
 	for t := 0; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
 			if pause {
 				fmt.Println("Paused")
 			}
 			if !kill {
-				if distThreads == 1 {
-					newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
-					turn++
-					turnChan <- turn
-					worldChan <- newWorldSlice
-				} else {
-					var worldFragment [][]uint8
-					channels := make([]chan [][]uint8, distThreads)
-					unit := int((req.EndY - req.StartY) / distThreads)
-					for i := 0; i < distThreads; i++ {
-						channels[i] = make(chan [][]uint8)
-						if i == distThreads-1 {
-							// Handling with problems if threads division goes with remainders
-							go worker(req.Params, req.StartY+(i*unit), req.EndY, 0, req.Params.ImageWidth, globalWorld, channels[i], turn)
-						} else {
-							go worker(req.Params, req.StartY+(i*unit), req.StartY+((i+1)*unit), 0, req.Params.ImageWidth, globalWorld, channels[i], turn)
-						}
-					}
-					for i := 0; i < distThreads; i++ {
-						worldPart := <-channels[i]
-						worldFragment = append(worldFragment, worldPart...)
-					}
-					turn++
-					turnChan <- turn
-					worldChan <- worldFragment
-				}
+				newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
+				turn++
+				turnChan <- turn
+				worldChan <- newWorldSlice
 
 				fmt.Println(turn)
 			} else {
@@ -221,56 +189,35 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	return
 }
 
-func handleConnection() {
-	client, err := rpc.Dial("tcp", brokerAddr)
+// kill := make(chan bool)
+
+func main() {
+	pAddr := flag.String("port", "8050", "Port to listen on")
+	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
+	flag.Parse()
+	client, err := rpc.Dial("tcp", *brokerAddr)
+	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
 		fmt.Println(err)
+	}
+	rpc.Register(&GolOperations{})
+	listeners, err := net.Listen("tcp", ":"+*pAddr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	subscribe := stubs.SubscribeRequest{
+		WorkerAddress: getOutboundIP() + ":" + *pAddr,
 	}
 	turnChan = make(chan int)
 	turnInternal = make(chan int)
 	worldChan = make(chan [][]uint8)
 	worldInternal = make(chan [][]uint8)
 	waitToUnpause = make(chan bool)
-	go UpdateBroker2(turnChan, worldChan, client)
-}
 
-func (*GolOperations) ListenToDistributor(req stubs.AddressRequest, res *stubs.StatusReport) (err error) {
-	brokerAddr = req.Address
-	handleConnection()
-	return
-}
+	client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
 
-func main() {
-	pAddr := flag.String("port", "8050", "Port to listen on")
-	// brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
-	flag.Parse()
-	fmt.Println("@")
-	listenerr, err := net.Listen("tcp", ":"+*pAddr)
-	if err != nil {
-		fmt.Println(err)
-	}
-	rpc.Register(&GolOperations{})
-	rpc.Accept(listenerr)
+	defer listeners.Close()
+	go UpdateBroker(turnChan, worldChan, client)
+	rpc.Accept(listeners)
 
-	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
-	//fmt.Println(*pAddr)
-	fmt.Println(getOutboundIP() + ":" + *pAddr)
-
-	//fmt.Println(getOutboundIP() + ":" + "8050")
-	// client, err := rpc.Dial("tcp", brokerAddr)
-	//listenerr, err := net.Listen("tcp", ":"+"8050")
-
-	// subscribe := stubs.SubscribeRequest{
-	// 	WorkerAddress: getOutboundIP() + ":" + *pAddr,
-	// 	//WorkerAddress: getOutboundIP() + ":" + "8050",
-	// }
-
-	//go receive()
-	//go send()
-	// client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
-
-	//client.Call(stubs.ConnectWorker, subscribe, new(stubs.StatusReport))
-	defer listenerr.Close()
-	// go UpdateBroker2(turnChan, worldChan, client)
-	//go UpdateWorker2(client)
 }
