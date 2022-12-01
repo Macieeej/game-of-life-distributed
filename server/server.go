@@ -222,6 +222,7 @@ func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
 	flag.Parse()
+	fmt.Println("@")
 	client, err := rpc.Dial("tcp", *brokerAddr)
 	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
 	if err != nil {
