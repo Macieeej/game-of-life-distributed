@@ -166,8 +166,8 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	action := make(chan int)
 	go handleKeyPress(p, c, keyPresses, worldChan, turnChan, action)
 
-	//3.92.61.3
-	serverId := flag.String("serverId", "3.92.61.3", "IP:port string to connect to as server")
+	//3.83.40.99
+	serverId := flag.String("serverId", "3.83.40.99", "IP:port string to connect to as server")
 	flag.Parse()
 	client, err := rpc.Dial("tcp", *serverId+":8030")
 	if err != nil {

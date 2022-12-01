@@ -1,12 +1,9 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/rpc"
-	"time"
 	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
 )
@@ -162,11 +159,14 @@ func (s *GolOperations) Process(req stubs.Request, res *stubs.Response) (err err
 }
 
 func main() {
-	pAddr := flag.String("port", "8030", "Port to listen on")
-	flag.Parse()
-	rand.Seed(time.Now().UnixNano())
+	//pAddr := flag.String("port", "8031", "Port to listen on")
+	//flag.Parse()
 	rpc.Register(&GolOperations{})
-	listener, _ := net.Listen("tcp", ":"+*pAddr)
+	//listener, _ := net.Listen("tcp", ":"+*pAddr)
+	listener, err := net.Listen("tcp", ":8031")
+	if err != nil {
+		fmt.Println("Error listening:", err.Error())
+	}
 	defer listener.Close()
 	rpc.Accept(listener)
 }
