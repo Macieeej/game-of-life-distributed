@@ -229,7 +229,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 func main() {
 	pAddr := flag.String("port", "8050", "Port to listen on")
 	//brokerAddr := flag.String("broker", "127.0.0.1:8030", "Address of broker instance")
-	brokerAddr := flag.String("broker", "192.168.0.157:8030", "Address of broker instance")
+	brokerAddr := flag.String("broker", "172.31.80.177:8030", "Address of broker instance")
 	flag.Parse()
 	client, err := rpc.Dial("tcp", *brokerAddr)
 	if err != nil {
