@@ -82,6 +82,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 func subscribe(workerAddress string) (err error) {
 	fmt.Println("Subscription request")
 	client, err := rpc.Dial("tcp", workerAddress)
+	fmt.Println("Dialed worker")
 	var newWorker Worker
 	if nextId != p.Threads-1 {
 		newWorker = Worker{
