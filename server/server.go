@@ -142,18 +142,21 @@ func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusR
 
 	globalWorld = req.World
 	completedTurns = req.Turns
+	cellFlipped = nil
 	res.Status = 7
 	incr++
 	return
 }
 
-func worker(p stubs.Params, startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, turn int) {
+func worker(p stubs.Params, startY, endY, startX, endX int, world [][]uint8, out chan<- [][]uint8, cellChan chan []util.Cell, turn int) {
 	newPart := make([][]uint8, endY-startY)
+	cellFlipFrag := make([]util.Cell, p.ImageHeight*p.ImageWidth)
 	for i := range newPart {
 		newPart[i] = make([]uint8, endX)
 	}
-	newPart, _ = CalculateNextState(p.ImageHeight, p.ImageWidth, startY, endY, world)
+	newPart, cellFlipFrag = CalculateNextState(p.ImageHeight, p.ImageWidth, startY, endY, world)
 	out <- newPart
+	cellChan <- cellFlipFrag
 }
 
 func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (err error) {
@@ -167,6 +170,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	// HARDCODE NO OF THREADS ON THE --SERVER SIDE'S WORKER--
 	distThreads := 1
 	for t := 0; t < req.Turns; t++ {
+
 		if incr == t && !pause && !quit {
 			if pause {
 				fmt.Println("Paused")
@@ -181,23 +185,27 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 				} else {
 					var worldFragment [][]uint8
 					channels := make([]chan [][]uint8, distThreads)
+					cellChan := make([]chan []util.Cell, distThreads)
 					unit := int((req.EndY - req.StartY) / distThreads)
 					for i := 0; i < distThreads; i++ {
 						channels[i] = make(chan [][]uint8)
+						cellChan[i] = make(chan []util.Cell)
 						if i == distThreads-1 {
 							// Handling with problems if threads division goes with remainders
-							go worker(req.Params, req.StartY+(i*unit), req.EndY, 0, req.Params.ImageWidth, globalWorld, channels[i], turn)
+							go worker(req.Params, req.StartY+(i*unit), req.EndY, 0, req.Params.ImageWidth, globalWorld, channels[i], cellChan[i], turn)
 						} else {
-							go worker(req.Params, req.StartY+(i*unit), req.StartY+((i+1)*unit), 0, req.Params.ImageWidth, globalWorld, channels[i], turn)
+							go worker(req.Params, req.StartY+(i*unit), req.StartY+((i+1)*unit), 0, req.Params.ImageWidth, globalWorld, channels[i], cellChan[i], turn)
 						}
 					}
 					for i := 0; i < distThreads; i++ {
 						worldPart := <-channels[i]
 						worldFragment = append(worldFragment, worldPart...)
+						cellFlipped = append(cellFlipped, <-cellChan[i]...)
 					}
 					turn++
 					turnChan <- turn
 					worldChan <- worldFragment
+					cellFlipChan <- cellFlipped
 				}
 
 			} else {
