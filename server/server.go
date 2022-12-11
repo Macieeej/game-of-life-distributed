@@ -173,9 +173,6 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	incr = 0
 	for t := 0; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
-			if pause {
-				fmt.Println("Paused")
-			}
 			if !kill {
 				fmt.Println("Loop iteration", t, "on worker", workerId)
 				newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
@@ -193,6 +190,10 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 					continue
 				}
 			}
+		} else if quit {
+			res.World = newWorldSlice
+			res.TurnsDone = turn
+			return
 		} else {
 			t--
 		}
