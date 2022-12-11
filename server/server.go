@@ -125,7 +125,6 @@ func (s *GolOperations) Action(req stubs.StateRequest, res *stubs.StatusReport) 
 func (s *GolOperations) ActionWithReport(req stubs.StateRequest, res *stubs.StatusReport) (err error) {
 	switch req.State {
 	case stubs.Quit:
-		quit = true
 		fmt.Println("quit")
 	case stubs.Save:
 	case stubs.Kill:
@@ -164,7 +163,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	// HARDCODE NO OF THREADS ON THE --SERVER SIDE'S WORKER--
 	distThreads := 2
 	for t := 0; t < req.Turns; t++ {
-		if incr == t && !pause && !quit {
+		if incr == t && !pause {
 
 			if !kill {
 				fmt.Println("Loop iteration", t, "on worker", workerId)
@@ -203,10 +202,6 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 					continue
 				}
 			}
-		} else if quit {
-			res.World = newWorldSlice
-			res.TurnsDone = turn
-			return
 		} else {
 			t--
 		}
