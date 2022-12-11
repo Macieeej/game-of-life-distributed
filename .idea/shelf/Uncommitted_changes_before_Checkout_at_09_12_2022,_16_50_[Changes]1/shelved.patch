@@ -1,0 +1,23 @@
+Index: server/server.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/server/server.go b/server/server.go
+--- a/server/server.go	
++++ b/server/server.go	
+@@ -180,11 +180,11 @@
+ 				fmt.Println("Loop iteration", t, "on worker", workerId)
+ 				newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
+ 				turn++
+-				fmt.Println("chan1")
++				//fmt.Println("chan1")
+ 				turnChan <- turn
+-				fmt.Println("chan2")
++				//fmt.Println("chan2")
+ 				worldChan <- newWorldSlice
+-				fmt.Println("chan3")
++				//fmt.Println("chan3")
+ 				fmt.Println(turn)
+ 			} else {
+ 				if kill {

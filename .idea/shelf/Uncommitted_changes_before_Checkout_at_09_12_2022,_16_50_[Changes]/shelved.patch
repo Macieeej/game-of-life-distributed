@@ -1,0 +1,17 @@
+Index: gol/distributor.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/gol/distributor.go b/gol/distributor.go
+--- a/gol/distributor.go	
++++ b/gol/distributor.go	
+@@ -151,7 +151,7 @@
+ 	//pause := false
+ 	quit := false
+ 
+-	serverAddr := flag.String("server", "44.202.248.234:8030", "IP:port string to connect to as server")
++	serverAddr := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
+ 	// Use Register Request (via RPC)
+ 	flag.Parse()
+ 	client, err := rpc.Dial("tcp", *serverAddr)

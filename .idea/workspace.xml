@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="703ca996-a39d-4144-9274-a92008770728" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/out/512x512x0.pgm" beforeDir="false" afterPath="$PROJECT_DIR$/out/512x512x0.pgm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/512x512x1000.pgm" beforeDir="false" afterPath="$PROJECT_DIR$/out/512x512x1000.pgm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.go" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+        <option value="Jupyter Notebook" />
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" url="file://$USER_HOME$/gosdk/go1.15.3" />
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="568f9334d74559741cf21b84a6426c9fe70d7c0f" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2HPL19q8An07TLImxm1t0JrdEW8" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultGoTemplateProperty": "Go File",
+    "Git.Branch.Popup.ShowAllRemotes": "true",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.format.on.save.advertiser.fired": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "configurable..is.expanded": "false",
+    "configurable.GoLibrariesConfigurable.is.expanded": "true",
+    "go.import.settings.migrated": "true",
+    "go.sdk.automatically.set": "true",
+    "last_opened_file_path": "/home/maciej/CompSysA-cw-distributed",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "go.vgo"
+  }
+}]]></component>
+  <component name="RunManager" selected="Go Build.go build server.go">
+    <configuration name="go build broker.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="gol-cw-distributed" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <package value="uk.ac.bris.cs/gameoflife" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/broker/broker.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build server.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="gol-cw-distributed" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <package value="uk.ac.bris.cs/gameoflife" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/server/server.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build stubs.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="gol-cw-distributed" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <package value="uk.ac.bris.cs/gameoflife" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/stubs/stubs.go" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Build.go build stubs.go" />
+        <item itemvalue="Go Build.go build server.go" />
+        <item itemvalue="Go Build.go build broker.go" />
+        <item itemvalue="Go Build.go build stubs.go" />
+        <item itemvalue="Go Build.go build server.go" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="703ca996-a39d-4144-9274-a92008770728" name="Changes" comment="" />
+      <created>1668181553913</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1668181553913</updated>
+      <workItem from="1668181555664" duration="3307000" />
+      <workItem from="1668266819421" duration="8715000" />
+      <workItem from="1668625512339" duration="777000" />
+      <workItem from="1668628496260" duration="4615000" />
+      <workItem from="1668698081184" duration="1483000" />
+      <workItem from="1668712859483" duration="2654000" />
+      <workItem from="1668784235914" duration="6202000" />
+      <workItem from="1668875831369" duration="4075000" />
+      <workItem from="1669106332468" duration="22645000" />
+      <workItem from="1669149436415" duration="1000" />
+      <workItem from="1669222126286" duration="9615000" />
+      <workItem from="1669296138289" duration="3101000" />
+      <workItem from="1669304328408" duration="5492000" />
+      <workItem from="1669313897429" duration="875000" />
+      <workItem from="1669387022842" duration="17762000" />
+      <workItem from="1669472812270" duration="26159000" />
+      <workItem from="1669556750408" duration="19927000" />
+      <workItem from="1669628216726" duration="32032000" />
+      <workItem from="1669729932540" duration="76214000" />
+      <workItem from="1670085881242" duration="24000" />
+      <workItem from="1670346001660" duration="3123000" />
+      <workItem from="1670599879329" duration="2391000" />
+      <workItem from="1670698548738" duration="5114000" />
+      <workItem from="1670776518237" duration="3495000" />
+      <workItem from="1670780026169" duration="178000" />
+      <workItem from="1670780846651" duration="1143000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VgoProject">
+    <settings-migrated>true</settings-migrated>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>

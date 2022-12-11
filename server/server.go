@@ -199,8 +199,9 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 					}
 					for i := 0; i < distThreads; i++ {
 						worldPart := <-channels[i]
+						cellPart := <-cellChan[i]
 						worldFragment = append(worldFragment, worldPart...)
-						cellFlipped = append(cellFlipped, <-cellChan[i]...)
+						cellFlipped = append(cellFlipped, cellPart...)
 					}
 					turn++
 					turnChan <- turn

@@ -48,7 +48,10 @@ type Worker struct {
 var p stubs.Params
 var world [][]uint8
 var completedTurns int
-var cellFlip []util.Cell
+
+//var cellFlip []util.Cell
+
+var cellFlip = make([]util.Cell, p.ImageHeight*p.ImageWidth)
 
 // Connect the worker in a loop
 func subscribe_loop(w Worker, startGame chan bool) {
@@ -181,6 +184,9 @@ func updateBroker(ubturns int, ubworldSlice [][]uint8, cellSlice []util.Cell, wo
 	topicmx.Lock()
 	defer topicmx.Unlock()
 	cellFlip = append(cellFlip, cellSlice...)
+	//cellFlip = make([]util.Cell, p.ImageHeight*p.ImageWidth)
+	//cellFlip = append(cellFlip, cellSlice...)
+	//cellFlip = cellSlice
 	merge(ubworldSlice, matchWorker(workerId))
 
 	if incr == p.Threads {
@@ -191,7 +197,7 @@ func updateBroker(ubturns int, ubworldSlice [][]uint8, cellSlice []util.Cell, wo
 			}
 			incr--
 		}
-		cellFlip = make([]util.Cell, p.ImageHeight*p.ImageWidth)
+		//cellFlip = make([]util.Cell, p.ImageHeight*p.ImageWidth)
 		completedTurns = ubturns
 
 	}
