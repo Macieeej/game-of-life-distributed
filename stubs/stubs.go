@@ -16,6 +16,7 @@ var Report = "GolOperations.Report"
 var UpdateWorld = "GolOperations.UpdateWorld"
 var UpdateBroker = "Broker.UpdateBroker"
 var UpdateWorker = "GolOperations.UpdateWorker"
+var QuitHandler = "Broker.SdlQuit"
 
 //var UpdateWorker = "Broker.UpdateWorker"
 
@@ -105,6 +106,9 @@ type SubscribeRequest struct {
 // (Broker -> Worker)
 type StateRequest struct {
 	State int
+}
+
+type QuitRequest struct {
 }
 
 // ----------------- Ticker -----------------------

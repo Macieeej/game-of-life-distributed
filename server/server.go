@@ -171,7 +171,7 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	quit = false
 	turn := 0
 	incr = 0
-	for t := 0; t < req.Turns; t++ {
+	for t := completedTurns; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
 			if !kill {
 				fmt.Println("Loop iteration", t, "on worker", workerId)

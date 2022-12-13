@@ -22,6 +22,9 @@ var nextId = 0
 var topicmx sync.RWMutex
 var unit int
 
+// Variable to indicate whether the distributor has initialised the broker
+var initialised = false
+
 // var theWorld World
 
 type World struct {
@@ -43,6 +46,7 @@ type Worker struct {
 	address      *string
 	params       WorkerParams
 	worldChannel chan World
+	startTurn    int
 }
 
 // Store the world
@@ -54,7 +58,14 @@ var completedTurns int
 func subscribe_loop(w Worker, startGame chan bool) {
 	fmt.Println("Loooping")
 	response := new(stubs.Response)
-	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX, EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
+	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX,
+		EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
+	// If the game was already initialised (broker and server are already connected), indicate the worker about processed turns.
+	if initialised {
+		w.startTurn = completedTurns
+		w.worker.Call(stubs.UpdateWorker, stubs.UpdateRequest{World: world, Turns: completedTurns, WorkerId: w.id},
+			new(stubs.StatusReport))
+	}
 	<-startGame
 	go func() {
 		for {
@@ -92,6 +103,7 @@ func subscribe(workerAddress string) (err error) {
 			worker:       client,
 			address:      &workerAddress,
 			worldChannel: worldChan[nextId],
+			startTurn:    0,
 			params: WorkerParams{
 				StartX: 0,
 				StartY: nextId * unit,
@@ -106,6 +118,7 @@ func subscribe(workerAddress string) (err error) {
 			worker:       client,
 			address:      &workerAddress,
 			worldChannel: worldChan[nextId],
+			startTurn:    0,
 			params: WorkerParams{
 				StartX: 0,
 				StartY: nextId * unit,
@@ -114,6 +127,7 @@ func subscribe(workerAddress string) (err error) {
 			},
 		}
 	}
+
 	workers = append(workers, newWorker)
 	nextId++
 	startGame := make(chan bool)
@@ -220,6 +234,11 @@ type Broker struct{}
 // func (b *Broker) ReportStatus(req stubs.StateRequest, req *stubs.Response) (err error) {
 // 	return err
 // }
+
+func (b *Broker) SdlQuit(req stubs.QuitRequest, res *stubs.StatusReport) (err error) {
+	initialised = true
+	return err
+}
 
 func (b *Broker) UpdateBroker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
 	err = updateBroker(req.Turns, req.World, req.WorkerId)

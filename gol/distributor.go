@@ -151,7 +151,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	//pause := false
 	quit := false
 
-	serverAddr := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
+	serverAddr := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as broker")
 	// Use Register Request (via RPC)
 	flag.Parse()
 	client, err := rpc.Dial("tcp", *serverAddr)
@@ -235,6 +235,7 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 				case stubs.Quit:
 					res := new(stubs.Response)
 					client.Call(stubs.ActionReport, stubs.StateRequest{State: stubs.Quit}, res)
+					client.Call(stubs.QuitHandler, new(stubs.QuitRequest), new(stubs.StatusReport))
 					worldChan <- res.World
 					turnChan <- res.TurnsDone
 				case stubs.Save:
