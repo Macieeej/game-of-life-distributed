@@ -141,8 +141,8 @@ func (s *GolOperations) Action(req stubs.StateRequest, res *stubs.StatusReport) 
 func (s *GolOperations) ActionWithReport(req stubs.StateRequest, res *stubs.StatusReport) (err error) {
 	switch req.State {
 	case stubs.Quit:
-		quit = true
 		fmt.Println("pause")
+		quit = true
 	case stubs.Save:
 	case stubs.Kill:
 		kill = true
@@ -169,8 +169,11 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	globalWorld = req.World
 	pause = false
 	quit = false
-	turn := 0
-	incr = 0
+	turn := req.ResumeTurn
+	incr = req.ResumeTurn
+	completedTurns = req.ResumeTurn
+	fmt.Println("EWFEWFEFEWFWEFWEFWFW", completedTurns)
+
 	for t := completedTurns; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
 			if !kill {

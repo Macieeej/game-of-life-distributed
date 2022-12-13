@@ -55,14 +55,15 @@ type Request struct {
 }
 
 type WorkerRequest struct {
-	WorkerId int
-	StartY   int
-	EndY     int
-	StartX   int
-	EndX     int
-	World    [][]uint8
-	Turns    int
-	Params   Params
+	WorkerId   int
+	StartY     int
+	EndY       int
+	StartX     int
+	EndX       int
+	World      [][]uint8
+	Turns      int
+	Params     Params
+	ResumeTurn int
 }
 
 type PauseRequest struct {

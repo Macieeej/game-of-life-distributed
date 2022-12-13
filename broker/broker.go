@@ -59,13 +59,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 	fmt.Println("Loooping")
 	response := new(stubs.Response)
 	workerReq := stubs.WorkerRequest{WorkerId: w.id, StartY: w.params.StartY, EndY: w.params.EndY, StartX: w.params.StartX,
-		EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p}
-	// If the game was already initialised (broker and server are already connected), indicate the worker about processed turns.
-	if initialised {
-		w.startTurn = completedTurns
-		w.worker.Call(stubs.UpdateWorker, stubs.UpdateRequest{World: world, Turns: completedTurns, WorkerId: w.id},
-			new(stubs.StatusReport))
-	}
+		EndX: w.params.EndX, World: world, Turns: p.Turns, Params: p, ResumeTurn: completedTurns}
 	<-startGame
 	go func() {
 		for {
@@ -161,7 +155,9 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	p.ImageHeight = req.ImageHeight
 	p.ImageWidth = req.ImageWidth
 	unit = int(p.ImageHeight / p.Threads)
-	completedTurns = 0
+	if !initialised {
+		completedTurns = 0
+	}
 	return err
 }
 
@@ -172,7 +168,6 @@ func makeChannel(threads int) {
 
 	for i := range worldChan {
 		worldChan[i] = make(chan World)
-
 		fmt.Println("Created channel #", i)
 	}
 }
@@ -289,6 +284,7 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 			go subscribe_loop(w, startGame)
 			go func() {
 				startGame <- true
+
 			}()
 		}
 	} else if len(workers) < p.Threads {
@@ -303,6 +299,7 @@ func (b *Broker) ConnectDistributor(req stubs.Request, res *stubs.Response) (err
 			go subscribe_loop(w, startGame)
 			go func() {
 				startGame <- true
+
 			}()
 		}
 	}
