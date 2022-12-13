@@ -157,6 +157,11 @@ func registerDistributor(req stubs.Request, res *stubs.StatusReport) (err error)
 	unit = int(p.ImageHeight / p.Threads)
 	if !initialised {
 		completedTurns = 0
+	} else {
+		// Panics when required turns are less then completed turns.
+		if completedTurns >= p.Turns {
+			panic("Already finished required turns.")
+		}
 	}
 	return err
 }
