@@ -151,8 +151,8 @@ func distributor(p Params, c distributorChannels, keyPresses <-chan rune) {
 	quit := false
 
 	flag.Parse()
-	client, err := rpc.Dial("tcp", "127.0.0.1:8030")
-	//client, err := rpc.Dial("tcp", "54.89.226.105:8030")
+	//client, err := rpc.Dial("tcp", "127.0.0.1:8030")
+	client, err := rpc.Dial("tcp", "44.206.225.119:8030")
 	if err != nil {
 		log.Fatal("dialing:", err)
 	}
