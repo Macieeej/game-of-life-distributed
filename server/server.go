@@ -147,8 +147,6 @@ func (s *GolOperations) ActionWithReport(req stubs.StateRequest, res *stubs.Stat
 }
 
 func (s *GolOperations) UpdateWorker(req stubs.UpdateRequest, res *stubs.StatusReport) (err error) {
-	fmt.Println("UpdateWorld called")
-	fmt.Println("From:", req.Turns)
 	globalWorld = req.World
 	completedTurns = req.Turns
 	res.Status = 7
@@ -178,9 +176,6 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 	distThreads := 2
 	for t := 0; t < req.Turns; t++ {
 		if incr == t && !pause && !quit {
-			if pause {
-				fmt.Println("Paused")
-			}
 			if !kill {
 				if distThreads == 1 {
 					newWorldSlice, _ = CalculateNextState(req.Params.ImageHeight, req.Params.ImageWidth, req.StartY, req.EndY, globalWorld)
@@ -209,7 +204,6 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 					worldChan <- worldFragment
 				}
 
-				fmt.Println(turn)
 			} else {
 				if kill {
 					break
@@ -217,6 +211,10 @@ func (s *GolOperations) Process(req stubs.WorkerRequest, res *stubs.Response) (e
 					continue
 				}
 			}
+		} else if quit {
+			res.World = newWorldSlice
+			res.TurnsDone = turn
+			return
 		} else {
 			t--
 		}

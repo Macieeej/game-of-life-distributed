@@ -68,7 +68,7 @@ func subscribe_loop(w Worker, startGame chan bool) {
 				w.worldChannel <- wt
 				break
 			}
-			fmt.Println("Updated worker:", w.id, "turns:", completedTurns)
+			//fmt.Println("Updated worker:", w.id, "turns:", completedTurns)
 		}
 	}()
 	err := w.worker.Call(stubs.ProcessTurnsHandler, workerReq, response)
@@ -124,7 +124,7 @@ func subscribe(workerAddress string) (err error) {
 		}
 	}()
 	if err == nil {
-		fmt.Println("Looooop")
+		//fmt.Println("Looooop")
 		go subscribe_loop(newWorker, startGame)
 	} else {
 		fmt.Println("Error subscribing ", workerAddress)
@@ -170,7 +170,6 @@ func merge(ubworldSlice [][]uint8, w Worker) {
 	}
 	incr++
 
-	// return
 }
 
 func matchWorker(id int) Worker {
@@ -187,12 +186,12 @@ var worldChanWhat []chan [][]uint8
 func updateBroker(ubturns int, ubworldSlice [][]uint8, workerId int) error {
 	topicmx.Lock()
 	defer topicmx.Unlock()
-	fmt.Println("Call merge func for worker:", workerId)
+	//fmt.Println("Call merge func for worker:", workerId)
 	merge(ubworldSlice, matchWorker(workerId))
 
 	if incr == p.Threads {
 		for _, w := range workers {
-			fmt.Println("Sending update to worker #", w.id)
+			//fmt.Println("Sending update to worker #", w.id)
 			w.worldChannel <- World{
 				world: world,
 				turns: ubturns,
